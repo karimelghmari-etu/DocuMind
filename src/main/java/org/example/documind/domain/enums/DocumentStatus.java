@@ -1,4 +1,8 @@
 package org.example.documind.domain.enums;
 
-public class DocumentStatus {
+public enum DocumentStatus {
+    PENDING,
+    PROCESSING,
+    INDEXED,
+    FAILED
 }
