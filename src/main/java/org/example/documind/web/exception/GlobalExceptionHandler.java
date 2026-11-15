@@ -44,4 +44,13 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(e.getMessage());
     }
+
+    @ExceptionHandler(CollectionNotFoundException.class)
+    public ResponseEntity<String> handleCollectionNotFoundException(
+            CollectionNotFoundException e) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+    }
 }

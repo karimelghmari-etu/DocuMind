@@ -1,13 +1,14 @@
 package org.example.documind.security;
 
+import lombok.Getter;
 import org.example.documind.domain.entity.User;
-import org.example.documind.domain.enums.RoleName;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
+@Getter
 public class CustomUserDetails implements UserDetails {
     private final User user;
     public CustomUserDetails(User user) {
@@ -17,6 +18,10 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return user.getRoles().stream().map(Role->new SimpleGrantedAuthority(Role.getName().name())).toList();
+    }
+
+    public Long getId() {
+        return user.getId();
     }
 
     @Override

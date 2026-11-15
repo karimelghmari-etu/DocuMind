@@ -1,0 +1,162 @@
+{
+  "info": {
+    "name": "DocuMind",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "username", "value": "testuser" },
+    { "key": "password", "value": "password123" },
+    { "key": "token", "value": "" },
+    { "key": "collectionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{username}}@example.com\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  pm.collectionVariables.set('token', pm.response.json().token);",
+              "}"
+            ]}
+          }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token', pm.response.json().token);"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Collections",
+      "item": [
+        {
+          "name": "1. Create collection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/collections",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Thesis\",\n  \"description\": \"papers\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('documentCount is 0', () => pm.expect(pm.response.json().documentCount).to.eql(0));",
+              "pm.collectionVariables.set('collectionId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "2. List my collections",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/collections" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('contains created collection', () => {",
+              "  const id = Number(pm.collectionVariables.get('collectionId'));",
+              "  pm.expect(pm.response.json().map(c => c.id)).to.include(id);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "3. Get collection by id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/collections/{{collectionId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "4. Update collection",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/collections/{{collectionId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Renamed\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('name updated', () => pm.expect(pm.response.json().name).to.eql('Renamed'));"
+            ]}
+          }]
+        },
+        {
+          "name": "5. Create with blank name (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/collections",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "6. Get unknown collection (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/collections/999999" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "7. List without token (expect 401/403)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/collections" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 or 403', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"] }
+          }]
+        },
+        {
+          "name": "8. Delete collection",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/collections/{{collectionId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    }
+  ]
+}

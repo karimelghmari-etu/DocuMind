@@ -52,6 +52,11 @@ public class SecurityConfig {
                 // Disable CSRF for the stateless REST API.
                 .csrf(csrf -> csrf.disable())
 
+                // H2 console renders inside frames; allow same-origin framing.
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                )
+
                 // JWT authentication does not use HTTP sessions.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -66,6 +71,9 @@ public class SecurityConfig {
                         ).permitAll()
 
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // H2 console (local dev only - has its own login screen).
+                        .requestMatchers("/h2-console/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
