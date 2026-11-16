@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.dto.document.DocumentDTO;
+import org.example.documind.dto.document.DocumentStatusDTO;
 import org.example.documind.dto.document.DocumentUpdateDTO;
 import org.example.documind.dto.document.DocumentUploadDTO;
 import org.example.documind.service.interfaces.DocumentService;
@@ -55,5 +56,11 @@ public class DocumentController {
     public void deleteDocument(@PathVariable Long documentId){
         Long ownerId = userService.getCurrentUserId();
         documentService.deleteDocument(documentId, ownerId);
+    }
+
+    @GetMapping("/{documentId}/status")
+    public DocumentStatusDTO getDocumentStatus(@PathVariable Long documentId){
+        Long ownerId = userService.getCurrentUserId();
+        return documentService.getDocumentStatus(documentId, ownerId);
     }
 }

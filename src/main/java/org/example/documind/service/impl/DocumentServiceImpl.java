@@ -1,16 +1,14 @@
 package org.example.documind.service.impl;
 
 import lombok.AllArgsConstructor;
-import org.example.documind.dao.CollectionRepository;
-import org.example.documind.dao.DocumentRepository;
-import org.example.documind.dao.ProcessingJobRepository;
-import org.example.documind.dao.UserRepository;
+import org.example.documind.dao.*;
 import org.example.documind.domain.entity.Collection;
 import org.example.documind.domain.entity.Document;
 import org.example.documind.domain.entity.ProcessingJob;
 import org.example.documind.domain.entity.User;
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.dto.document.DocumentDTO;
+import org.example.documind.dto.document.DocumentStatusDTO;
 import org.example.documind.dto.document.DocumentUpdateDTO;
 import org.example.documind.dto.document.DocumentUploadDTO;
 import org.example.documind.service.interfaces.DocumentService;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -30,10 +27,11 @@ import java.util.Set;
 @AllArgsConstructor
 public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
-    private final FileStorageService fileStorageService;
+    private final DocumentChunkRepository documentChunkRepository;
     private final UserRepository userRepository;
     private final ProcessingJobRepository processingJobRepository;
     private final CollectionRepository collectionRepository;
+    private final FileStorageService fileStorageService;
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "application/pdf",
@@ -141,6 +139,20 @@ public class DocumentServiceImpl implements DocumentService {
         } catch (FileStorageException e){
             // the file couldnt be deleted; the database delete still goes ahead
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentStatusDTO getDocumentStatus(Long documentId, Long ownerId) {
+        Document document = documentRepository.findByIdAndOwnerId(documentId, ownerId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+
+        ProcessingJob job = processingJobRepository.findByDocumentId(documentId).orElse(null);
+        long chunkCount = documentChunkRepository.countByDocumentId(documentId);
+
+        if (job == null){
+            return new DocumentStatusDTO(documentId, document.getStatus(), null, null, chunkCount, document.getUploadedAt());
+        }
+        return new DocumentStatusDTO(documentId, document.getStatus(), job.getStatus(), job.getErrorMessage(), chunkCount, job.getUpdatedAt());
     }
 }
 

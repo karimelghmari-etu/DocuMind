@@ -14,8 +14,30 @@
     { "key": "token", "value": "" },
     { "key": "collectionId", "value": "" },
     { "key": "documentId", "value": "" },
-    { "key": "docCollectionId", "value": "" }
+    { "key": "docCollectionId", "value": "" },
+    { "key": "processDocId", "value": "" },
+    { "key": "blankDocId", "value": "" },
+    { "key": "otherToken", "value": "" }
   ],
+  "event": [{
+    "listen": "prerequest",
+    "script": { "exec": [
+      "// Helper shared by the Processing folder: polls /status until the document is INDEXED or FAILED (max ~20 s).",
+      "// Usage in a request's pre-request script: waitForProcessing(pm.collectionVariables.get('processDocId'));",
+      "waitForProcessing = function (docId) {",
+      "  const url = pm.collectionVariables.get('baseUrl') + '/api/documents/' + docId + '/status';",
+      "  const token = pm.collectionVariables.get('token');",
+      "  let tries = 0;",
+      "  const poll = () => pm.sendRequest({ url: url, method: 'GET', header: { Authorization: 'Bearer ' + token } }, (err, res) => {",
+      "    tries++;",
+      "    const status = (!err && res.code === 200) ? res.json().documentStatus : null;",
+      "    if (status === 'INDEXED' || status === 'FAILED' || tries >= 20) return;",
+      "    setTimeout(poll, 1000);",
+      "  });",
+      "  poll();",
+      "};"
+    ]}
+  }],
   "item": [
     {
       "name": "Auth",
@@ -242,10 +264,7 @@
             "script": { "exec": [
               "pm.test('200 OK', () => pm.response.to.have.status(200));",
               "pm.test('all results are PENDING', () => pm.response.json().forEach(d => pm.expect(d.status).to.eql('PENDING')));",
-              "pm.test('contains uploaded document', () => {",
-              "  const id = Number(pm.collectionVariables.get('documentId'));",
-              "  pm.expect(pm.response.json().map(d => d.id)).to.include(id);",
-              "});"
+              "// No 'contains uploaded document' check: the scheduler may already have processed it."
             ]}
           }]
         },
@@ -433,6 +452,199 @@
         {
           "name": "20. Clean up delete-test collection",
           "request": { "method": "DELETE", "url": "{{baseUrl}}/api/collections/{{docCollectionId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Processing",
+      "description": "Needs the app running with the scheduler on. Requests 4 and 5 poll /status for up to ~20 s before running. Working directory must be the DocuMind folder (for the fixtures).",
+      "item": [
+        {
+          "name": "1. Upload a normal text file",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/sample.txt" },
+                { "key": "title", "type": "text", "value": "Processing test" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('processDocId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "2. Upload a file with no text (spaces only)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/blank.txt" },
+                { "key": "title", "type": "text", "value": "Blank test" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created (accepted, it only fails later during processing)', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('blankDocId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "3. Status right after upload",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{processDocId}}/status" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('same document', () => pm.expect(body.documentId).to.eql(Number(pm.collectionVariables.get('processDocId'))));",
+              "pm.test('has all fields', () => pm.expect(body).to.have.all.keys('documentId', 'documentStatus', 'jobStatus', 'errorMessage', 'chunkCount', 'updatedAt'));",
+              "// the scheduler may or may not have run yet, so any non-failed state is fine",
+              "pm.test('documentStatus is a valid in-progress or done state', () => pm.expect(body.documentStatus).to.be.oneOf(['PENDING', 'PROCESSING', 'INDEXED']));",
+              "pm.test('jobStatus is a valid in-progress or done state', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING', 'COMPLETED']));"
+            ]}
+          }]
+        },
+        {
+          "name": "4. Normal file ends up INDEXED with chunks",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{processDocId}}/status" },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["waitForProcessing(pm.collectionVariables.get('processDocId'));"] }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('documentStatus is INDEXED', () => pm.expect(body.documentStatus).to.eql('INDEXED'));",
+                "pm.test('jobStatus is COMPLETED', () => pm.expect(body.jobStatus).to.eql('COMPLETED'));",
+                "pm.test('no error message', () => pm.expect(body.errorMessage).to.not.be.ok);",
+                "pm.test('at least one chunk', () => pm.expect(body.chunkCount).to.be.at.least(1));",
+                "pm.test('updatedAt is set', () => pm.expect(body.updatedAt).to.be.a('string'));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "5. Blank file ends up FAILED with a reason",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{blankDocId}}/status" },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["waitForProcessing(pm.collectionVariables.get('blankDocId'));"] }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('documentStatus is FAILED', () => pm.expect(body.documentStatus).to.eql('FAILED'));",
+                "pm.test('jobStatus is FAILED', () => pm.expect(body.jobStatus).to.eql('FAILED'));",
+                "pm.test('error message explains why', () => pm.expect(body.errorMessage).to.eql('No text could be extracted'));",
+                "pm.test('no chunks', () => pm.expect(body.chunkCount).to.eql(0));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "6. List INDEXED documents contains the normal file",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents?status=INDEXED" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const ids = pm.response.json().map(d => d.id);",
+              "pm.test('contains the normal file', () => pm.expect(ids).to.include(Number(pm.collectionVariables.get('processDocId'))));",
+              "pm.test('does not contain the blank file', () => pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('blankDocId'))));"
+            ]}
+          }]
+        },
+        {
+          "name": "7. List FAILED documents contains the blank file",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents?status=FAILED" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('contains the blank file', () => pm.expect(pm.response.json().map(d => d.id)).to.include(Number(pm.collectionVariables.get('blankDocId'))));"
+            ]}
+          }]
+        },
+        {
+          "name": "8. Status of unknown document (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/999999/status" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "9. Status without token (expect 401)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/documents/{{processDocId}}/status" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] }
+          }]
+        },
+        {
+          "name": "10. Another user cannot see my status (expect 404)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{otherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/documents/{{processDocId}}/status"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "// register a throw-away second user and keep their token",
+                "const name = 'other' + Date.now();",
+                "pm.sendRequest({",
+                "  url: pm.collectionVariables.get('baseUrl') + '/api/auth/register',",
+                "  method: 'POST',",
+                "  header: { 'Content-Type': 'application/json' },",
+                "  body: { mode: 'raw', raw: JSON.stringify({ username: name, email: name + '@example.com', password: 'password123' }) }",
+                "}, (err, res) => pm.collectionVariables.set('otherToken', res.json().token));"
+              ]}
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('404 Not Found (not 200, not 403: we do not reveal it exists)', () => pm.response.to.have.status(404));"] }
+            }
+          ]
+        },
+        {
+          "name": "11. Clean up normal file",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{processDocId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "12. Clean up blank file",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{blankDocId}}" },
           "event": [{
             "listen": "test",
             "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
