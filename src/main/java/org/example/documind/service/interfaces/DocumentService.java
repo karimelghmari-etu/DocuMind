@@ -16,4 +16,5 @@ public interface DocumentService {
     DocumentDTO updateDocument(Long documentId, DocumentUpdateDTO documentUpdateDTO, Long ownerId);
     void deleteDocument(Long documentId, Long ownerId);
     DocumentStatusDTO getDocumentStatus(Long documentId, Long ownerId);
+    void reprocessDocument(Long documentId, Long ownerId);
 }

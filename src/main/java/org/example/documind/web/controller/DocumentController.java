@@ -63,4 +63,11 @@ public class DocumentController {
         Long ownerId = userService.getCurrentUserId();
         return documentService.getDocumentStatus(documentId, ownerId);
     }
+
+    @PostMapping("/{documentId}/reprocess")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void reprocessDocument(@PathVariable Long documentId){
+        Long ownerId = userService.getCurrentUserId();
+        documentService.reprocessDocument(documentId, ownerId);
+    }
 }

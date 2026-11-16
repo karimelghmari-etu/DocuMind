@@ -13,6 +13,7 @@ import org.example.documind.service.interfaces.ChunkingService;
 import org.example.documind.service.interfaces.DocumentProcessingService;
 import org.example.documind.service.interfaces.TextExtractionService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
@@ -43,6 +44,17 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
         }catch (Exception e){
             failJob(ctx, e);
         }
+    }
+
+    @Override
+    @Transactional
+    public int requeueStuckJobs() {
+        List<ProcessingJob> stuck = processingJobRepository.findByStatus(ProcessingStatus.CHUNKING);
+        for (ProcessingJob job : stuck){
+            job.setStatus(ProcessingStatus.QUEUED);
+            job.getDocument().setStatus(DocumentStatus.PENDING);
+        }
+        return stuck.size();
     }
 
     private JobContext startJob(Long jobId){

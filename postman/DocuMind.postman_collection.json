@@ -17,6 +17,7 @@
     { "key": "docCollectionId", "value": "" },
     { "key": "processDocId", "value": "" },
     { "key": "blankDocId", "value": "" },
+    { "key": "brokenDocId", "value": "" },
     { "key": "otherToken", "value": "" }
   ],
   "event": [{
@@ -461,7 +462,7 @@
     },
     {
       "name": "Processing",
-      "description": "Needs the app running with the scheduler on. Requests 4 and 5 poll /status for up to ~20 s before running. Working directory must be the DocuMind folder (for the fixtures).",
+      "description": "Needs the app running with the scheduler on. Requests 4, 5, 12 and 15 poll /status for up to ~20 s before running (the first scheduler run waits 10 s after startup). Working directory must be the DocuMind folder (for the fixtures).",
       "item": [
         {
           "name": "1. Upload a normal text file",
@@ -635,7 +636,141 @@
           ]
         },
         {
-          "name": "11. Clean up normal file",
+          "name": "11. Upload a corrupted PDF",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/broken.pdf" },
+                { "key": "title", "type": "text", "value": "Broken PDF test" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created (looks like a PDF, only fails during processing)', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('brokenDocId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "12. Corrupted PDF ends up FAILED",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/status" },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["waitForProcessing(pm.collectionVariables.get('brokenDocId'));"] }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('documentStatus is FAILED', () => pm.expect(body.documentStatus).to.eql('FAILED'));",
+                "pm.test('jobStatus is FAILED', () => pm.expect(body.jobStatus).to.eql('FAILED'));",
+                "pm.test('error message says extraction failed', () => pm.expect(body.errorMessage).to.eql('Text Extraction failed'));",
+                "pm.test('no chunks', () => pm.expect(body.chunkCount).to.eql(0));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "13. Reprocess the failed PDF (expect 202)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/reprocess" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('202 Accepted', () => pm.response.to.have.status(202));"] }
+          }]
+        },
+        {
+          "name": "14. Status right after reprocess (back in the queue)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/status" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "// the scheduler may already have picked it up, so 'in progress' is also accepted",
+              "pm.test('document is waiting or processing', () => pm.expect(body.documentStatus).to.be.oneOf(['PENDING', 'PROCESSING']));",
+              "pm.test('job is queued or running', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING']));",
+              "pm.test('old error message was cleared', () => pm.expect(body.errorMessage).to.not.be.ok);"
+            ]}
+          }]
+        },
+        {
+          "name": "15. After the retry it is FAILED again (file is still broken)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/status" },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["waitForProcessing(pm.collectionVariables.get('brokenDocId'));"] }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('documentStatus is FAILED', () => pm.expect(body.documentStatus).to.eql('FAILED'));",
+                "pm.test('error message is back', () => pm.expect(body.errorMessage).to.eql('Text Extraction failed'));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "16. Reprocess an INDEXED document (expect 409)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/documents/{{processDocId}}/reprocess" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+              "pm.test('message explains why', () => pm.expect(pm.response.text()).to.eql('Only failed documents can be reprocessed'));"
+            ]}
+          }]
+        },
+        {
+          "name": "17. Reprocess unknown document (expect 404)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/documents/999999/reprocess" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "18. Reprocess without token (expect 401)",
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/reprocess" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] }
+          }]
+        },
+        {
+          "name": "19. Another user cannot reprocess my document (expect 404)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{otherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents/{{brokenDocId}}/reprocess"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found (uses the second user from request 10)', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "20. Clean up corrupted PDF",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{brokenDocId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "21. Clean up normal file",
           "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{processDocId}}" },
           "event": [{
             "listen": "test",
@@ -643,7 +778,7 @@
           }]
         },
         {
-          "name": "12. Clean up blank file",
+          "name": "22. Clean up blank file",
           "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{blankDocId}}" },
           "event": [{
             "listen": "test",

@@ -7,6 +7,7 @@ import org.example.documind.domain.entity.Document;
 import org.example.documind.domain.entity.ProcessingJob;
 import org.example.documind.domain.entity.User;
 import org.example.documind.domain.enums.DocumentStatus;
+import org.example.documind.domain.enums.ProcessingStatus;
 import org.example.documind.dto.document.DocumentDTO;
 import org.example.documind.dto.document.DocumentStatusDTO;
 import org.example.documind.dto.document.DocumentUpdateDTO;
@@ -15,6 +16,7 @@ import org.example.documind.service.interfaces.DocumentService;
 import org.example.documind.service.interfaces.FileStorageService;
 import org.example.documind.web.exception.DocumentNotFoundException;
 import org.example.documind.web.exception.FileStorageException;
+import org.example.documind.web.exception.InvalidDocumentStateException;
 import org.example.documind.web.exception.InvalidFileException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -153,6 +155,21 @@ public class DocumentServiceImpl implements DocumentService {
             return new DocumentStatusDTO(documentId, document.getStatus(), null, null, chunkCount, document.getUploadedAt());
         }
         return new DocumentStatusDTO(documentId, document.getStatus(), job.getStatus(), job.getErrorMessage(), chunkCount, job.getUpdatedAt());
+    }
+
+    @Override
+    @Transactional
+    public void reprocessDocument(Long documentId, Long ownerId) {
+        Document document = documentRepository.findByIdAndOwnerId(documentId, ownerId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+        ProcessingJob job = processingJobRepository.findByDocumentId(documentId).orElseThrow(() -> new IllegalStateException("Processing job missing"));
+
+        if (job.getStatus() != ProcessingStatus.FAILED){
+            throw new InvalidDocumentStateException("Only failed documents can be reprocessed");
+        }
+
+        job.setStatus(ProcessingStatus.QUEUED);
+        job.setErrorMessage(null);
+        document.setStatus(DocumentStatus.PENDING);
     }
 }
 

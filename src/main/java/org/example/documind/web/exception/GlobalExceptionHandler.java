@@ -79,4 +79,12 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Could not process the file");
     }
+
+    @ExceptionHandler(InvalidDocumentStateException.class)
+    public ResponseEntity<String> handleInvalidDocumentStateException(
+            InvalidDocumentStateException e){
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(e.getMessage());
+    }
 }
