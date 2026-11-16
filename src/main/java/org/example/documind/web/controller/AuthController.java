@@ -1,6 +1,7 @@
 
 package org.example.documind.web.controller;
 
+import jakarta.validation.Valid;
 import org.example.documind.dto.auth.AuthResponseDTO;
 import org.example.documind.dto.auth.LoginRequestDTO;
 import org.example.documind.dto.auth.RegisterRequestDTO;
@@ -23,7 +24,7 @@ public class AuthController {
     // Inscription
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(
-            @RequestBody RegisterRequestDTO request
+            @Valid @RequestBody RegisterRequestDTO request
     ) {
         AuthResponseDTO response = authService.register(request);
 
@@ -35,7 +36,7 @@ public class AuthController {
     // Connexion
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(
-            @RequestBody LoginRequestDTO request
+            @Valid @RequestBody LoginRequestDTO request
     ) {
         AuthResponseDTO response = authService.login(request);
 

@@ -1,0 +1,2 @@
+DocuMind sample document.
+This file is used by the Postman upload tests.

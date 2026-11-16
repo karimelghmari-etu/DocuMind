@@ -8,11 +8,13 @@
     "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "username", "value": "testuser" },
     { "key": "password", "value": "password123" },
     { "key": "token", "value": "" },
-    { "key": "collectionId", "value": "" }
+    { "key": "collectionId", "value": "" },
+    { "key": "documentId", "value": "" },
+    { "key": "docCollectionId", "value": "" }
   ],
   "item": [
     {
@@ -151,6 +153,286 @@
         {
           "name": "8. Delete collection",
           "request": { "method": "DELETE", "url": "{{baseUrl}}/api/collections/{{collectionId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "description": "File paths are relative to the project root. In Postman, set Settings > General > Working directory to the DocuMind folder.",
+      "item": [
+        {
+          "name": "1. Upload document with title",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/sample.txt" },
+                { "key": "title", "type": "text", "value": "My first doc" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('title is the one sent', () => pm.expect(body.title).to.eql('My first doc'));",
+              "pm.test('status is PENDING', () => pm.expect(body.status).to.eql('PENDING'));",
+              "pm.test('has id and uploadedAt', () => { pm.expect(body.id).to.be.a('number'); pm.expect(body.uploadedAt).to.be.a('string'); });",
+              "pm.collectionVariables.set('documentId', body.id);"
+            ]}
+          }]
+        },
+        {
+          "name": "2. Upload without title (title = filename)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/sample.txt" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('title falls back to filename', () => pm.expect(pm.response.json().title).to.eql('sample.txt'));"
+            ]}
+          }]
+        },
+        {
+          "name": "3. Get document by id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{documentId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('same document', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('documentId'))));"
+            ]}
+          }]
+        },
+        {
+          "name": "4. List my documents",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('contains uploaded document', () => {",
+              "  const id = Number(pm.collectionVariables.get('documentId'));",
+              "  pm.expect(pm.response.json().map(d => d.id)).to.include(id);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "5. List documents with status PENDING",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents?status=PENDING" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('all results are PENDING', () => pm.response.json().forEach(d => pm.expect(d.status).to.eql('PENDING')));",
+              "pm.test('contains uploaded document', () => {",
+              "  const id = Number(pm.collectionVariables.get('documentId'));",
+              "  pm.expect(pm.response.json().map(d => d.id)).to.include(id);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "6. Upload without file (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "type": "text", "value": "No file here" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+              "pm.test('message', () => pm.expect(pm.response.text()).to.include('File is required'));"
+            ]}
+          }]
+        },
+        {
+          "name": "7. Upload unsupported type (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/sample.png" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+              "pm.test('message', () => pm.expect(pm.response.text()).to.include('Unsupported file type'));"
+            ]}
+          }]
+        },
+        {
+          "name": "8. Upload without token (expect 401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/sample.txt" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] }
+          }]
+        },
+        {
+          "name": "9. Get unknown document (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/999999" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "10. Rename document",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/documents/{{documentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Renamed doc\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('title updated', () => pm.expect(pm.response.json().title).to.eql('Renamed doc'));"
+            ]}
+          }]
+        },
+        {
+          "name": "11. Get after rename (title persisted)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{documentId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('title persisted', () => pm.expect(pm.response.json().title).to.eql('Renamed doc'));"
+            ]}
+          }]
+        },
+        {
+          "name": "12. Rename with blank title (expect 400)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/documents/{{documentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "13. Rename unknown document (expect 404)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/documents/999999",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Ghost\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "14. Create collection for delete test",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/collections",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Delete test\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('docCollectionId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "15. Add document to collection",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/collections/{{docCollectionId}}/documents/{{documentId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('documentCount is 1', () => pm.expect(pm.response.json().documentCount).to.eql(1));"
+            ]}
+          }]
+        },
+        {
+          "name": "16. Delete document",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{documentId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "17. Get deleted document (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/documents/{{documentId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "18. Collection no longer contains document",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/collections/{{docCollectionId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('documentCount is 0', () => pm.expect(pm.response.json().documentCount).to.eql(0));"
+            ]}
+          }]
+        },
+        {
+          "name": "19. Delete unknown document (expect 404)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/999999" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] }
+          }]
+        },
+        {
+          "name": "20. Clean up delete-test collection",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/collections/{{docCollectionId}}" },
           "event": [{
             "listen": "test",
             "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }

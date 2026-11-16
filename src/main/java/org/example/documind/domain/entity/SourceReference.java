@@ -2,6 +2,8 @@ package org.example.documind.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "source_references")
@@ -22,6 +24,7 @@ public class SourceReference {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chunk_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private DocumentChunk chunk;
 
     @Column(nullable = false)

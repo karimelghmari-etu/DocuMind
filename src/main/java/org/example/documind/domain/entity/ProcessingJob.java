@@ -3,6 +3,9 @@ package org.example.documind.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.documind.domain.enums.ProcessingStatus;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,6 +23,7 @@ public class ProcessingJob {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "document_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Document document;
 
     @Enumerated(EnumType.STRING)

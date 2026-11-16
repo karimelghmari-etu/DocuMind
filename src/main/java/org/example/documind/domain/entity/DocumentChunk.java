@@ -2,6 +2,8 @@ package org.example.documind.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "document_chunks")
@@ -18,6 +20,7 @@ public class DocumentChunk {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "document_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Document document;
 
     @Column(nullable = false, columnDefinition = "TEXT")

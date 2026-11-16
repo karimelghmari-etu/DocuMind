@@ -1,10 +1,15 @@
 package org.example.documind.web.controller;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.dto.document.DocumentDTO;
+import org.example.documind.dto.document.DocumentUpdateDTO;
+import org.example.documind.dto.document.DocumentUploadDTO;
 import org.example.documind.service.interfaces.DocumentService;
 import org.example.documind.service.interfaces.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +26,7 @@ public class DocumentController {
         Long ownerId = userService.getCurrentUserId();
         return documentService.getDocumentById(documentId, ownerId);
     }
+
     @GetMapping
     public List<DocumentDTO> getDocumentsByOwnerId(@RequestParam(required = false) DocumentStatus status) {
         Long ownerId = userService.getCurrentUserId();
@@ -31,4 +37,23 @@ public class DocumentController {
         return documentService.getDocumentsByOwnerId(ownerId);
     }
 
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public DocumentDTO uploadDocument(@Valid @ModelAttribute DocumentUploadDTO documentUploadDTO){
+        Long ownerId = userService.getCurrentUserId();
+        return documentService.uploadDocument(documentUploadDTO, ownerId);
+    }
+
+    @PutMapping("/{documentId}")
+    public DocumentDTO updateDocument(@PathVariable Long documentId, @Valid @RequestBody DocumentUpdateDTO documentUpdateDTO){
+        Long ownerId = userService.getCurrentUserId();
+        return documentService.updateDocument(documentId, documentUpdateDTO, ownerId);
+    }
+
+    @DeleteMapping("/{documentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteDocument(@PathVariable Long documentId){
+        Long ownerId = userService.getCurrentUserId();
+        documentService.deleteDocument(documentId, ownerId);
+    }
 }
