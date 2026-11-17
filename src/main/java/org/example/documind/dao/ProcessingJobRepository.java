@@ -16,4 +16,6 @@ public interface ProcessingJobRepository extends JpaRepository<ProcessingJob, Lo
     List<ProcessingJob> findByStatus(ProcessingStatus status);
 
     List<ProcessingJob> findTop10ByStatusOrderByCreatedAtAsc(ProcessingStatus status);
+
+    List<ProcessingJob> findByStatusIn(List<ProcessingStatus> statuses);
 }

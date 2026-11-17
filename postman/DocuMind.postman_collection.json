@@ -518,7 +518,7 @@
               "pm.test('has all fields', () => pm.expect(body).to.have.all.keys('documentId', 'documentStatus', 'jobStatus', 'errorMessage', 'chunkCount', 'updatedAt'));",
               "// the scheduler may or may not have run yet, so any non-failed state is fine",
               "pm.test('documentStatus is a valid in-progress or done state', () => pm.expect(body.documentStatus).to.be.oneOf(['PENDING', 'PROCESSING', 'INDEXED']));",
-              "pm.test('jobStatus is a valid in-progress or done state', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING', 'COMPLETED']));"
+              "pm.test('jobStatus is a valid in-progress or done state', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING', 'EMBEDDING', 'COMPLETED']));"
             ]}
           }]
         },
@@ -695,7 +695,7 @@
               "const body = pm.response.json();",
               "// the scheduler may already have picked it up, so 'in progress' is also accepted",
               "pm.test('document is waiting or processing', () => pm.expect(body.documentStatus).to.be.oneOf(['PENDING', 'PROCESSING']));",
-              "pm.test('job is queued or running', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING']));",
+              "pm.test('job is queued or running', () => pm.expect(body.jobStatus).to.be.oneOf(['QUEUED', 'CHUNKING', 'EMBEDDING']));",
               "pm.test('old error message was cleared', () => pm.expect(body.errorMessage).to.not.be.ok);"
             ]}
           }]

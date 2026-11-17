@@ -11,6 +11,7 @@ import org.example.documind.domain.entity.User;
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.domain.enums.ProcessingStatus;
 import org.example.documind.service.interfaces.DocumentProcessingService;
+import org.example.documind.service.interfaces.EmbeddingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,7 @@ class DocumentProcessingServiceImplTest {
     @Autowired private DocumentRepository documentRepository;
     @Autowired private DocumentChunkRepository chunkRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private EmbeddingService embeddingService;
 
     @TempDir
     Path tempDir;
@@ -138,6 +140,22 @@ class DocumentProcessingServiceImplTest {
     }
 
     @Test
+    void everyChunkGetsAnEmbeddingThatMatchesItsOwnText() throws IOException {
+        Ids ids = createJob(writeFile("long.txt", longText()).toString(), ProcessingStatus.QUEUED);
+
+        processingService.processJob(ids.jobId());
+
+        List<DocumentChunk> chunks = chunksOf(ids);
+        for (DocumentChunk chunk : chunks) {
+            assertNotNull(chunk.getEmbedding(), "chunk " + chunk.getChunkIndex() + " has no embedding");
+            assertEquals(384, chunk.getEmbedding().length);
+        }
+        // the numbers stored for chunk 0 must be the numbers of chunk 0's text (not shifted by one)
+        DocumentChunk first = chunks.get(0);
+        assertArrayEquals(embeddingService.embed(first.getContent()), first.getEmbedding(), 1e-4f);
+    }
+
+    @Test
     void shortFileGivesExactlyOneChunk() throws IOException {
         Ids ids = createJob(writeFile("short.txt", "Just one short sentence.").toString(), ProcessingStatus.QUEUED);
 
@@ -207,5 +225,54 @@ class DocumentProcessingServiceImplTest {
     @Test
     void unknownJobIdThrows() {
         assertThrows(IllegalArgumentException.class, () -> processingService.processJob(999_999L));
+    }
+
+    // ---------- stuck job recovery ----------
+
+    /** Simulates a crash: the job and document are left half-way, as if the app stopped mid-processing. */
+    private Ids createStuckJob(ProcessingStatus jobStatus) throws IOException {
+        Ids ids = createJob(writeFile("stuck-" + jobStatus + ".txt", "Some text").toString(), jobStatus);
+        Document document = reloadDocument(ids);
+        document.setStatus(DocumentStatus.PROCESSING);
+        documentRepository.save(document);
+        return ids;
+    }
+
+    @Test
+    void requeueStuckJobsPutsChunkingAndEmbeddingJobsBackInTheQueue() throws IOException {
+        Ids chunking = createStuckJob(ProcessingStatus.CHUNKING);
+        Ids embedding = createStuckJob(ProcessingStatus.EMBEDDING);
+
+        assertEquals(2, processingService.requeueStuckJobs());
+
+        for (Ids ids : List.of(chunking, embedding)) {
+            assertEquals(ProcessingStatus.QUEUED, reloadJob(ids).getStatus());
+            assertEquals(DocumentStatus.PENDING, reloadDocument(ids).getStatus());
+        }
+    }
+
+    @Test
+    void requeueStuckJobsLeavesFinishedAndWaitingJobsAlone() throws IOException {
+        Ids queued = createJob(writeFile("a.txt", "a").toString(), ProcessingStatus.QUEUED);
+        Ids completed = createJob(writeFile("b.txt", "b").toString(), ProcessingStatus.COMPLETED);
+        Ids failed = createJob(writeFile("c.txt", "c").toString(), ProcessingStatus.FAILED);
+
+        assertEquals(0, processingService.requeueStuckJobs());
+
+        assertEquals(ProcessingStatus.QUEUED, reloadJob(queued).getStatus());
+        assertEquals(ProcessingStatus.COMPLETED, reloadJob(completed).getStatus());
+        assertEquals(ProcessingStatus.FAILED, reloadJob(failed).getStatus());
+    }
+
+    @Test
+    void requeuedJobCanBeProcessedNormally() throws IOException {
+        Ids ids = createStuckJob(ProcessingStatus.EMBEDDING);
+
+        processingService.requeueStuckJobs();
+        processingService.processJob(ids.jobId());
+
+        assertEquals(ProcessingStatus.COMPLETED, reloadJob(ids).getStatus());
+        assertEquals(DocumentStatus.INDEXED, reloadDocument(ids).getStatus());
+        assertEquals(1, chunksOf(ids).size());
     }
 }

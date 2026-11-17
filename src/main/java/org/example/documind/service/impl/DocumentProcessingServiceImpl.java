@@ -11,6 +11,7 @@ import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.domain.enums.ProcessingStatus;
 import org.example.documind.service.interfaces.ChunkingService;
 import org.example.documind.service.interfaces.DocumentProcessingService;
+import org.example.documind.service.interfaces.EmbeddingService;
 import org.example.documind.service.interfaces.TextExtractionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
     private final DocumentChunkRepository documentChunkRepository;
     private final ChunkingService chunkingService;
     private final TextExtractionService textExtractionService;
+    private final EmbeddingService embeddingService;
     private final TransactionTemplate transactionTemplate;
 
     @Override
@@ -40,7 +42,10 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
             String text = textExtractionService.extractText(ctx.filePath());
             List<String> pieces = chunkingService.chunk(text);
 
-            finishJob(ctx, pieces);
+            markEmbedding(ctx);
+
+            List<float[]> vectors = embeddingService.embedAll(pieces);
+            finishJob(ctx, pieces, vectors);
         }catch (Exception e){
             failJob(ctx, e);
         }
@@ -49,7 +54,7 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
     @Override
     @Transactional
     public int requeueStuckJobs() {
-        List<ProcessingJob> stuck = processingJobRepository.findByStatus(ProcessingStatus.CHUNKING);
+        List<ProcessingJob> stuck = processingJobRepository.findByStatusIn(List.of(ProcessingStatus.CHUNKING, ProcessingStatus.EMBEDDING));
         for (ProcessingJob job : stuck){
             job.setStatus(ProcessingStatus.QUEUED);
             job.getDocument().setStatus(DocumentStatus.PENDING);
@@ -73,7 +78,7 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
         });
     }
 
-    private void finishJob(JobContext ctx, List<String> pieces){
+    private void finishJob(JobContext ctx, List<String> pieces, List<float[]> vectors){
         transactionTemplate.executeWithoutResult(status -> {
             documentChunkRepository.deleteByDocumentId(ctx.documentId());
 
@@ -84,6 +89,7 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
                         .document(document)
                         .chunkIndex(i)
                         .content(pieces.get(i))
+                        .embedding(vectors.get(i))
                         .build());
             }
             documentChunkRepository.saveAll(chunks);
@@ -103,6 +109,13 @@ public class DocumentProcessingServiceImpl implements DocumentProcessingService 
 
             Document document = documentRepository.getReferenceById(ctx.documentId());
             document.setStatus(DocumentStatus.FAILED);
+        });
+    }
+
+    private void markEmbedding(JobContext ctx){
+        transactionTemplate.executeWithoutResult(status -> {
+            ProcessingJob job = processingJobRepository.findById(ctx.jobId()).orElseThrow(() -> new IllegalArgumentException("Processing job not found" + ctx.jobId()));
+            job.setStatus(ProcessingStatus.EMBEDDING);
         });
     }
     private record JobContext(Long jobId, Long documentId, String filePath) {}

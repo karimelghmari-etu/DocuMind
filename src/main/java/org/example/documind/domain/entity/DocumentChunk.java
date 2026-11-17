@@ -2,6 +2,7 @@ package org.example.documind.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.documind.domain.converter.FloatArrayConverter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -29,7 +30,7 @@ public class DocumentChunk {
     @Column(nullable = false)
     private Integer chunkIndex;
 
-    // Vector embedding storage representation depending on your database (e.g., PostgreSQL vector extension or stored as binary/JSON representation if using standard drivers initially)
-    @Column(columnDefinition = "TEXT")
-    private String embeddingJson;
+    @Convert(converter = FloatArrayConverter.class)
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private float[] embedding;
 }
