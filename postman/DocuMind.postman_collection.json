@@ -18,7 +18,9 @@
     { "key": "processDocId", "value": "" },
     { "key": "blankDocId", "value": "" },
     { "key": "brokenDocId", "value": "" },
-    { "key": "otherToken", "value": "" }
+    { "key": "otherToken", "value": "" },
+    { "key": "bakingDocId", "value": "" },
+    { "key": "databaseDocId", "value": "" }
   ],
   "event": [{
     "listen": "prerequest",
@@ -783,6 +785,228 @@
           "event": [{
             "listen": "test",
             "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "description": "Uploads two documents on different topics, waits for them to be INDEXED, then searches. Needs the scheduler on and the working directory set to the DocuMind folder.",
+      "item": [
+        {
+          "name": "1. Upload baking document",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/search-baking.txt" },
+                { "key": "title", "type": "text", "value": "Baking bread" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('bakingDocId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "2. Upload databases document",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "postman/fixtures/search-databases.txt" },
+                { "key": "title", "type": "text", "value": "SQL performance" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('databaseDocId', pm.response.json().id);"
+            ]}
+          }]
+        },
+        {
+          "name": "3. Bread question finds the baking document first",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=how do I bake bread at home&limit=5" },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "// wait until both documents are processed",
+                "waitForProcessing(pm.collectionVariables.get('bakingDocId'));",
+                "waitForProcessing(pm.collectionVariables.get('databaseDocId'));"
+              ]}
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "const results = pm.response.json();",
+                "pm.test('returns a list with results', () => { pm.expect(results).to.be.an('array'); pm.expect(results.length).to.be.at.least(1); });",
+                "pm.test('each result has all fields', () => results.forEach(r => pm.expect(r).to.have.all.keys('documentId', 'documentTitle', 'chunkIndex', 'content', 'score')));",
+                "pm.test('baking document is first', () => {",
+                "  pm.expect(results[0].documentId).to.eql(Number(pm.collectionVariables.get('bakingDocId')));",
+                "  pm.expect(results[0].documentTitle).to.eql('Baking bread');",
+                "});",
+                "pm.test('sorted by score, highest first', () => {",
+                "  for (let i = 1; i < results.length; i++) pm.expect(results[i - 1].score).to.be.at.least(results[i].score);",
+                "});",
+                "pm.test('scores are valid cosine values (-1 to 1)',() => results.forEach(r => pm.expect(r.score).to.be.within(-1, 1.0001)));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "4. SQL question finds the databases document first",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=why is my SQL query so slow&limit=5" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('databases document is first', () => pm.expect(pm.response.json()[0].documentId).to.eql(Number(pm.collectionVariables.get('databaseDocId'))));"
+            ]}
+          }]
+        },
+        {
+          "name": "5. limit=1 returns exactly one result",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=bread&limit=1" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('one result', () => pm.expect(pm.response.json().length).to.eql(1));"
+            ]}
+          }]
+        },
+        {
+          "name": "6. No limit uses the default (at most 5)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=bread" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('at most 5 results', () => pm.expect(pm.response.json().length).to.be.at.most(5));"
+            ]}
+          }]
+        },
+        {
+          "name": "7. Missing q (expect 400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "8. Blank q (expect 400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=%20%20" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "9. limit=0 (expect 400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=bread&limit=0" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "10. limit=21 (expect 400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=bread&limit=21" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "11. limit=abc (expect 400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=bread&limit=abc" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "12. Search without token (expect 401)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/search?q=bread" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] }
+          }]
+        },
+        {
+          "name": "13. Another user never sees my documents",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{otherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/search?q=how do I bake bread at home&limit=20"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "// register a fresh second user so this works even when the folder runs alone",
+                "const name = 'searcher' + Date.now();",
+                "pm.sendRequest({",
+                "  url: pm.collectionVariables.get('baseUrl') + '/api/auth/register',",
+                "  method: 'POST',",
+                "  header: { 'Content-Type': 'application/json' },",
+                "  body: { mode: 'raw', raw: JSON.stringify({ username: name, email: name + '@example.com', password: 'password123' }) }",
+                "}, (err, res) => pm.collectionVariables.set('otherToken', res.json().token));"
+              ]}
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "pm.test('new user has nothing to search', () => pm.expect(pm.response.json()).to.eql([]));"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "14. Clean up baking document",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{bakingDocId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "15. Clean up databases document",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/documents/{{databaseDocId}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "16. Deleted documents no longer appear in search",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/search?q=how do I bake bread at home&limit=20" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const ids = pm.response.json().map(r => r.documentId);",
+              "pm.test('baking document is gone', () => pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('bakingDocId'))));",
+              "pm.test('databases document is gone', () => pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('databaseDocId'))));"
+            ]}
           }]
         }
       ]

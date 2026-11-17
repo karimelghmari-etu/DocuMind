@@ -1,0 +1,5 @@
+Making SQL queries faster
+
+A database index is a data structure that lets the engine find rows without scanning the whole table.
+Add an index on columns that appear in WHERE clauses and JOIN conditions. Use EXPLAIN to see the query plan.
+Too many indexes slow down inserts and updates, because every index has to be updated when the data changes.
