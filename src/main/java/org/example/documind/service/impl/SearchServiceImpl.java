@@ -7,6 +7,7 @@ import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.dto.search.SearchResultDTO;
 import org.example.documind.service.interfaces.EmbeddingService;
 import org.example.documind.service.interfaces.SearchService;
+import org.example.documind.service.util.VectorMath;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,19 +31,8 @@ public class SearchServiceImpl implements SearchService {
                 chunk.getDocument().getId(),
                 chunk.getDocument().getTitle(),
                 chunk.getChunkIndex(),
-                chunk.getContent(),
-                cosineSimilarity(queryVector, chunk.getEmbedding())))
+                chunk.getContent(), VectorMath.cosineSimilarity(queryVector, chunk.getEmbedding())))
                 .sorted(Comparator.comparingDouble(SearchResultDTO::score).reversed())
                 .limit(limit).toList();
-    }
-
-    private static double cosineSimilarity(float[] a, float[] b){
-        double dot = 0, normA = 0, normB = 0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 }

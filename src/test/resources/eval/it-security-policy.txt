@@ -1,0 +1,51 @@
+Northwind Labs IT Security Policy
+
+This policy protects Northwind Labs, our customers and our employees. It applies to every person who uses a company account, device or network, including contractors and interns. Breaking these rules can lead to the loss of access and, in serious cases, to disciplinary action. Questions about this policy go to the security team.
+
+Passwords
+
+Every password used for a company account must be at least 14 characters long. Long passphrases made of several random words are easier to remember and harder to guess than short complex passwords. Passwords are not changed on a fixed schedule; you only need to change a password when there is a reason to believe it has been compromised. Never reuse a company password on another website, and never share it with anyone, including the IT team.
+
+Password manager
+
+All employees must store their passwords in the company password manager. It is installed on every laptop and can generate strong passwords for you. Shared team credentials must be stored in a shared vault, never in documents, chats or emails.
+
+Multi-factor authentication
+
+Multi-factor authentication is mandatory for all company accounts. Regular users may use the authenticator app on their phone. Accounts with administrator rights must use a hardware security key, which the IT team provides on the first day. Losing a security key must be reported the same day so that it can be disabled.
+
+Devices
+
+Company laptops are protected with full-disk encryption, which is enabled before the device is handed over. The operating system and applications are updated automatically; postponing an update for more than seven days is not allowed. Screens lock automatically after five minutes of inactivity, and you should lock your screen manually whenever you leave your desk.
+
+Lost or stolen devices
+
+If a laptop, phone or security key is lost or stolen, report it to the security team within one hour by calling the security hotline. The device will be locked and wiped remotely. Reporting quickly is more important than knowing exactly what happened; nobody will be blamed for reporting a loss.
+
+Phishing
+
+Attackers often pretend to be colleagues, customers or suppliers. Be careful with unexpected attachments, urgent payment requests and links asking you to log in. Forward suspicious messages to report@northwind.example and then delete them. Do not click links or reply to the sender. The security team runs phishing simulations every quarter to help everyone practise.
+
+Software
+
+Only install software from the internal software portal. If the tool you need is not available, request it through the portal and the security team will review it within five working days. Browser extensions follow the same rule. Pirated or unlicensed software is never allowed on company devices.
+
+Removable media
+
+To prevent data leaks and malware, personal USB storage devices are blocked on all company laptops. If you need to exchange large files with a customer, use the secure file transfer service instead. Company-issued encrypted drives may be used for specific projects with approval from the security team.
+
+Networks
+
+At the office, use the employee wireless network; the guest network is only for visitors. When working outside the office, for example on public or hotel Wi-Fi, you must connect through the company VPN before accessing any internal system. Never connect company devices to networks that ask you to install certificates or profiles.
+
+Data classification
+
+All information at Northwind Labs belongs to one of four levels: public, internal, confidential and restricted. Public information may be shared freely. Internal information is for employees only. Confidential information, such as customer data and contracts, is shared only with people who need it. Restricted information, such as encryption keys and salary data, is limited to named individuals and must never leave approved systems.
+
+Backups
+
+Company systems are backed up every night at 02:00. Backups are encrypted, stored in a separate location, and kept for 90 days. Files stored only on your laptop are not backed up, so always save work documents in the company cloud storage.
+
+Visitors
+
+Visitors must sign in at reception, wear a visitor badge and be accompanied by an employee at all times. Visitors may not use employee meeting rooms without a host present.

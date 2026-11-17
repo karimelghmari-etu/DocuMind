@@ -1,0 +1,41 @@
+# Search evaluation set.
+# Format: question | document file | answer phrase
+# A search result counts as correct when it comes from that document AND its text contains the answer phrase.
+# Questions deliberately use different words than the documents, so keyword matching alone is not enough.
+
+# ---------- employee-handbook.txt ----------
+During which hours do I have to be available every day? | employee-handbook.txt | between 10:00 and 15:00
+How often am I allowed to work from my house? | employee-handbook.txt | up to three days per week
+How much paid time off do I get per year? | employee-handbook.txt | 25 days of paid vacation
+Can I move holidays I did not take into next year? | employee-handbook.txt | carry over a maximum of five days
+When do I need a medical certificate if I am ill? | employee-handbook.txt | after three consecutive days
+How long can a mother or father stay home after a baby arrives? | employee-handbook.txt | 16 weeks of fully paid leave
+How long is the trial period when I start? | employee-handbook.txt | probation period of six months
+How often does my boss evaluate my work? | employee-handbook.txt | twice a year, in June and December
+How much money can I spend on courses and conferences? | employee-handbook.txt | 1,500 euros per employee per year
+Do I get paid for recommending a friend who joins? | employee-handbook.txt | referral bonus of 2,000 euros
+How long before leaving do I have to resign? | employee-handbook.txt | notice period of two months
+
+# ---------- it-security-policy.txt ----------
+How long does my login secret need to be? | it-security-policy.txt | at least 14 characters
+Do I have to change my password every few months? | it-security-policy.txt | reason to believe it has been compromised
+What do admins need to sign in? | it-security-policy.txt | hardware security key
+Someone stole my laptop, what should I do? | it-security-policy.txt | within one hour
+Where do I forward a fake-looking email? | it-security-policy.txt | report@northwind.example
+Can I download and install tools I found online? | it-security-policy.txt | internal software portal
+Can I plug my own memory stick into my laptop? | it-security-policy.txt | personal USB storage devices are blocked
+I am working from a cafe, how do I connect safely? | it-security-policy.txt | connect through the company VPN
+What sensitivity categories exist for information? | it-security-policy.txt | public, internal, confidential and restricted
+For how long are copies of our data stored? | it-security-policy.txt | kept for 90 days
+When does my computer lock itself? | it-security-policy.txt | after five minutes of inactivity
+
+# ---------- travel-expense-policy.txt ----------
+How far in advance should I reserve a business trip? | travel-expense-policy.txt | at least 14 days before departure
+Am I allowed to fly business class? | travel-expense-policy.txt | flights longer than six hours
+What is the most I can pay for a room per night? | travel-expense-policy.txt | 180 euros per night
+How much can I spend on food each day on a trip? | travel-expense-policy.txt | daily meal allowance of 60 euros
+Will the company pay for wine or beer? | travel-expense-policy.txt | Alcoholic drinks are not reimbursed
+What is the deadline for handing in my costs? | travel-expense-policy.txt | within 30 days of returning
+When do I have to keep the proof of payment? | travel-expense-policy.txt | every expense above 25 euros
+How much do I get back for driving my own vehicle? | travel-expense-policy.txt | 0.30 euros per kilometre
+When is a cab allowed late at night? | travel-expense-policy.txt | after 22:00
