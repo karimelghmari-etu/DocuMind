@@ -1,4 +1,8 @@
 package org.example.documind.dto.chat;
 
-public class ChatRequest {
-}
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record ChatRequest(
+        @NotBlank @Size(max = 2000) String question
+) {}

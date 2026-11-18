@@ -29,4 +29,7 @@ public class SourceReference {
 
     @Column(nullable = false)
     private Double relevanceScore;
+
+    @Column(nullable = false)
+    private Integer citationNumber;
 }

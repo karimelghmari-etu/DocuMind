@@ -99,4 +99,12 @@ public class GlobalExceptionHandler {
                 .body("The AI service is unavailable right now");
     }
 
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ResponseEntity<String> handleConversationNotFoundException(
+            ConversationNotFoundException e) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+    }
 }

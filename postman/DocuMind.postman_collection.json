@@ -20,7 +20,10 @@
     { "key": "brokenDocId", "value": "" },
     { "key": "otherToken", "value": "" },
     { "key": "bakingDocId", "value": "" },
-    { "key": "databaseDocId", "value": "" }
+    { "key": "databaseDocId", "value": "" },
+    { "key": "chatDocId", "value": "" },
+    { "key": "conversationId", "value": "" },
+    { "key": "namedConversationId", "value": "" }
   ],
   "event": [{
     "listen": "prerequest",
@@ -853,7 +856,7 @@
                 "pm.test('200 OK', () => pm.response.to.have.status(200));",
                 "const results = pm.response.json();",
                 "pm.test('returns a list with results', () => { pm.expect(results).to.be.an('array'); pm.expect(results.length).to.be.at.least(1); });",
-                "pm.test('each result has all fields', () => results.forEach(r => pm.expect(r).to.have.all.keys('documentId', 'documentTitle', 'chunkIndex', 'content', 'score')));",
+                "pm.test('each result has all fields', () => results.forEach(r => pm.expect(r).to.have.all.keys('chunkId', 'documentId', 'documentTitle', 'chunkIndex', 'content', 'score')));",
                 "pm.test('baking document is first', () => {",
                 "  pm.expect(results[0].documentId).to.eql(Number(pm.collectionVariables.get('bakingDocId')));",
                 "  pm.expect(results[0].documentTitle).to.eql('Baking bread');",
@@ -1008,6 +1011,664 @@
               "pm.test('databases document is gone', () => pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('databaseDocId'))));"
             ]}
           }]
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "1. Upload the employee handbook",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "postman/fixtures/chat-handbook.txt"
+                },
+                {
+                  "key": "title",
+                  "type": "text",
+                  "value": "Employee Handbook"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('chatDocId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Create a conversation without a body",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('has all fields', () => pm.expect(body).to.have.all.keys('id', 'title', 'createdAt'));",
+                  "pm.test('default title', () => pm.expect(body.title).to.eql('New conversation'));",
+                  "pm.collectionVariables.set('conversationId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Create a conversation with a title (spaces are trimmed)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"   Vacation questions   \"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('title is trimmed', () => pm.expect(pm.response.json().title).to.eql('Vacation questions'));",
+                  "pm.collectionVariables.set('namedConversationId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Title longer than 255 characters (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Ask a question answered by the handbook",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How many vacation days do I get per year?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// the LLM can only answer once the handbook is INDEXED",
+                  "waitForProcessing(pm.collectionVariables.get('chatDocId'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const msg = pm.response.json();",
+                  "console.log('ANSWER:', msg.content);",
+                  "pm.test('has all fields', () => pm.expect(msg).to.have.all.keys('id', 'role', 'content', 'createdAt', 'sources'));",
+                  "pm.test('is the assistant answer', () => pm.expect(msg.role).to.eql('ASSISTANT'));",
+                  "pm.test('answer mentions 25 days', () => pm.expect(msg.content).to.include('25'));",
+                  "pm.test('cites at least one source', () => pm.expect(msg.sources.length).to.be.at.least(1));",
+                  "pm.test('each source has all fields', () => msg.sources.forEach(s => pm.expect(s).to.have.all.keys('number', 'documentId', 'documentTitle', 'chunkIndex', 'content', 'score')));",
+                  "pm.test('sources come from the handbook', () => msg.sources.forEach(s => pm.expect(s.documentId).to.eql(Number(pm.collectionVariables.get('chatDocId')))));",
+                  "pm.test('sources are sorted by number', () => { for (let i = 1; i < msg.sources.length; i++) pm.expect(msg.sources[i - 1].number).to.be.below(msg.sources[i].number); });",
+                  "pm.test('every [n] in the text has a matching source', () => {",
+                  "  const cited = [...msg.content.matchAll(/\\[(\\d+)\\]/g)].map(m => Number(m[1]));",
+                  "  const numbers = msg.sources.map(s => s.number);",
+                  "  cited.forEach(n => pm.expect(numbers).to.include(n));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Follow-up question uses the conversation history",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How many of those days can I carry over to next year?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const msg = pm.response.json();",
+                  "console.log('ANSWER:', msg.content);",
+                  "pm.test('answers the carry-over rule (five days)', () => pm.expect(msg.content).to.match(/five|5/i));",
+                  "pm.test('cites a source', () => pm.expect(msg.sources.length).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Question not covered by the documents",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the CEO's favourite colour?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const msg = pm.response.json();",
+                  "console.log('ANSWER:', msg.content);",
+                  "pm.test('says it could not find the answer', () => pm.expect(msg.content).to.include('could not find'));",
+                  "pm.test('cites nothing', () => pm.expect(msg.sources).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. List conversations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "const byId = id => list.find(c => c.id === Number(pm.collectionVariables.get(id)));",
+                  "pm.test('contains both conversations', () => { pm.expect(byId('conversationId')).to.exist; pm.expect(byId('namedConversationId')).to.exist; });",
+                  "pm.test('first question became the title', () => pm.expect(byId('conversationId').title).to.eql('How many vacation days do I get per year?'));",
+                  "pm.test('a title chosen by the user is kept', () => pm.expect(byId('namedConversationId').title).to.eql('Vacation questions'));",
+                  "pm.test('newest first', () => { for (let i = 1; i < list.length; i++) pm.expect(list[i - 1].createdAt >= list[i].createdAt).to.be.true; });",
+                  "pm.test('list items have no messages', () => list.forEach(c => pm.expect(c).to.have.all.keys('id', 'title', 'createdAt')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. Get the conversation with its messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const conv = pm.response.json();",
+                  "pm.test('has all fields', () => pm.expect(conv).to.have.all.keys('id', 'title', 'createdAt', 'messages'));",
+                  "pm.test('3 questions + 3 answers', () => pm.expect(conv.messages.length).to.eql(6));",
+                  "pm.test('USER and ASSISTANT alternate, question first', () => conv.messages.forEach((m, i) => pm.expect(m.role).to.eql(i % 2 === 0 ? 'USER' : 'ASSISTANT')));",
+                  "pm.test('first message is the first question', () => pm.expect(conv.messages[0].content).to.eql('How many vacation days do I get per year?'));",
+                  "pm.test('messages are in order (ids increase)', () => { for (let i = 1; i < conv.messages.length; i++) pm.expect(conv.messages[i].id).to.be.above(conv.messages[i - 1].id); });",
+                  "pm.test('questions have no sources', () => conv.messages.filter(m => m.role === 'USER').forEach(m => pm.expect(m.sources).to.eql([])));",
+                  "pm.test('the first answer kept its sources', () => pm.expect(conv.messages[1].sources.length).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Blank question (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"   \"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11. Missing question (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12. Question longer than 2000 characters (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13. Validation failures were not saved",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('still 6 messages', () => pm.expect(pm.response.json().messages.length).to.eql(6));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14. Get unknown conversation (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15. Ask in unknown conversation (expect 404)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/999999/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How many vacation days do I get per year?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16. List without token (expect 401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17. Another user cannot open my conversation (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// register a fresh second user so this works even when the folder runs alone",
+                  "const name = 'chatter' + Date.now();",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('baseUrl') + '/api/auth/register',",
+                  "  method: 'POST',",
+                  "  header: { 'Content-Type': 'application/json' },",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ username: name, email: name + '@example.com', password: 'password123' }) }",
+                  "}, (err, res) => pm.collectionVariables.set('otherToken', res.json().token));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18. Another user cannot post in my conversation (expect 404)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How many vacation days do I get per year?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19. Another user cannot delete my conversation (expect 404)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Another user's list is empty",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('no conversations', () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21. Delete the named conversation (expect 204)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/conversations/{{namedConversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22. Deleted conversation is gone (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/{{namedConversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23. Delete the conversation with messages (expect 204)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24. Conversation and its messages are gone (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25. Clean up the handbook",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/documents/{{chatDocId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
