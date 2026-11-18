@@ -16,6 +16,9 @@ class OllamaLLMServiceManualTest {
 
     @Test
     void ollamaAnswers() {
+        // Opt-in: local models are slow on CPU, so only run when explicitly asked.
+        assumeTrue("true".equalsIgnoreCase(System.getenv("RUN_OLLAMA_TESTS")),
+                "RUN_OLLAMA_TESTS not set to true, skipping");
         assumeTrue(ollamaIsRunning(), "Ollama not running, skipping");
 
         LLMService ollama = new OllamaLLMService(

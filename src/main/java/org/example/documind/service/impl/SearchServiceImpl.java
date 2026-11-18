@@ -28,6 +28,7 @@ public class SearchServiceImpl implements SearchService {
         List<DocumentChunk> chunks = documentChunkRepository.findSearchableChunks(ownerId, DocumentStatus.INDEXED);
 
         return chunks.stream().map(chunk -> new SearchResultDTO(
+                chunk.getId(),
                 chunk.getDocument().getId(),
                 chunk.getDocument().getTitle(),
                 chunk.getChunkIndex(),
