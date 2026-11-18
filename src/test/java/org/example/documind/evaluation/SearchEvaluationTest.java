@@ -117,6 +117,62 @@ class SearchEvaluationTest {
         }
     }
 
+    @Value("${app.rag.min-score}")
+    private double minScore;
+
+    private static double bestScore(String question, List<IndexedChunk> index) {
+        float[] queryVector = embeddingService.embed(question);
+        return index.stream()
+                .mapToDouble(chunk -> VectorMath.cosineSimilarity(queryVector, chunk.vector()))
+                .max()
+                .orElse(0);
+    }
+
+    /**
+     * RAGServiceImpl answers "I could not find this" without calling the LLM when the best chunk
+     * scores below app.rag.min-score. Every real eval question must stay above that threshold,
+     * otherwise correct answers would be refused. Unrelated questions are printed to show the margin.
+     */
+    @Test
+    void minScoreDoesNotRejectRealQuestions() throws IOException {
+        List<Question> questions = loadQuestions();
+        List<IndexedChunk> index = buildIndex(questions, size, overlap);
+
+        double lowestReal = 1;
+        String lowestQuestion = "";
+        List<String> rejected = new ArrayList<>();
+        for (Question question : questions) {
+            double best = bestScore(question.text(), index);
+            if (best < minScore) {
+                rejected.add(question.text());
+                System.out.printf("REJECTED  %.3f  %s%n", best, question.text());
+            }
+            if (best < lowestReal) {
+                lowestReal = best;
+                lowestQuestion = question.text();
+            }
+        }
+
+        List<String> unrelated = List.of(
+                "What is the CEO's favourite colour?",
+                "How do rockets reach orbit?",
+                "What is the best recipe for chocolate cake?",
+                "Who won the football world cup in 2010?",
+                "How does photosynthesis work in plants?");
+        double highestUnrelated = 0;
+        for (String question : unrelated) {
+            double best = bestScore(question, index);
+            highestUnrelated = Math.max(highestUnrelated, best);
+            System.out.printf("unrelated %.3f  %s%n", best, question);
+        }
+
+        System.out.printf("min-score %.2f | lowest real question %.3f (%s) | highest unrelated %.3f%n",
+                minScore, lowestReal, lowestQuestion, highestUnrelated);
+
+        assertTrue(rejected.isEmpty(),
+                rejected.size() + " real question(s) would be refused without asking the LLM: " + rejected);
+    }
+
     @Test
     void searchQualityDoesNotRegress() throws IOException {
         Result result = evaluate(size, overlap, true);
