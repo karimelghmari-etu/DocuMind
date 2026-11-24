@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,9 +21,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter
-    ) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -40,94 +39,115 @@ public class SecurityConfig {
                 new FilterRegistrationBean<>(filter);
 
         registration.setEnabled(false);
-
         return registration;
     }
 
+    // 1. Security configuration for REST API requests.
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)
+    @Order(1)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http)
             throws Exception {
 
         http
-                // Disable CSRF for the stateless REST API.
+                .securityMatcher("/api/**")
+
                 .csrf(csrf -> csrf.disable())
 
-                // H2 console renders inside frames; allow same-origin framing.
-                .headers(headers -> headers
-                        .frameOptions(frame -> frame.sameOrigin())
-                )
-
-                // JWT authentication does not use HTTP sessions.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Authorization rules.
                 .authorizeHttpRequests(auth -> auth
-                        .dispatcherTypeMatchers(
-                                DispatcherType.ERROR
-                        ).permitAll()
-
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated()
+                )
 
-                        // H2 console (local dev only - has its own login screen).
-                        .requestMatchers("/h2-console/**").permitAll()
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, ex) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+
+                            response.getWriter().write(
+                                    "{\"status\":401,\"error\":\"Unauthorized\","
+                                            + "\"message\":\"Authentication required\"}"
+                            );
+                        })
+
+                        .accessDeniedHandler((request, response, ex) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+
+                            response.getWriter().write(
+                                    "{\"status\":403,\"error\":\"Forbidden\","
+                                            + "\"message\":\"You do not have permission to access this resource\"}"
+                            );
+                        })
+                )
+
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
+        return http.build();
+    }
+
+    // 2. Security configuration for browser pages.
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http)
+            throws Exception {
+
+        http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/h2-console/**")
+                )
+
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                )
+
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.IF_REQUIRED
+                        )
+                )
+
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+
+                        .requestMatchers(
+                                "/login",
+                                "/register",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/h2-console/**"
+                        ).permitAll()
 
                         .anyRequest().authenticated()
                 )
 
-                // Custom JSON security responses.
-                .exceptionHandling(exception -> exception
-
-                        .authenticationEntryPoint(
-                                (request, response, authException) -> {
-
-                                    response.setStatus(
-                                            HttpServletResponse.SC_UNAUTHORIZED
-                                    );
-
-                                    response.setContentType(
-                                            MediaType.APPLICATION_JSON_VALUE
-                                    );
-
-                                    response.setCharacterEncoding("UTF-8");
-
-                                    response.getWriter().write(
-                                            "{\"status\":401,"
-                                                    + "\"error\":\"Unauthorized\","
-                                                    + "\"message\":\"Authentication required\"}"
-                                    );
-                                }
-                        )
-
-                        .accessDeniedHandler(
-                                (request, response, accessDeniedException) -> {
-
-                                    response.setStatus(
-                                            HttpServletResponse.SC_FORBIDDEN
-                                    );
-
-                                    response.setContentType(
-                                            MediaType.APPLICATION_JSON_VALUE
-                                    );
-
-                                    response.setCharacterEncoding("UTF-8");
-
-                                    response.getWriter().write(
-                                            "{\"status\":403,"
-                                                    + "\"error\":\"Forbidden\","
-                                                    + "\"message\":\"You do not have permission to access this resource\"}"
-                                    );
-                                }
-                        )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/dashboard", true)
+                        .failureUrl("/login?error")
+                        .permitAll()
                 )
 
-                // Add JWT filter before Spring's username/password filter.
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID")
+                        .permitAll()
                 );
 
         return http.build();
