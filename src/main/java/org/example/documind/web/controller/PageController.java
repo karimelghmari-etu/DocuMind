@@ -11,14 +11,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.example.documind.web.exception.UsernameAlreadyExistsException;
 import org.example.documind.web.exception.EmailAlreadyExistsException;
+import org.example.documind.security.CustomUserDetails;
+import org.example.documind.service.interfaces.DashboardService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @Controller
 public class PageController {
 
     private final AuthService authService;
+    private final DashboardService dashboardService;
 
-    public PageController(AuthService authService) {
+    public PageController(
+            AuthService authService,
+            DashboardService dashboardService) {
+
         this.authService = authService;
+        this.dashboardService = dashboardService;
     }
 
     @GetMapping("/login")
@@ -65,7 +73,31 @@ public class PageController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard() {
+    public String dashboard(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Model model) {
+
+        Long userId = userDetails.getId();
+        model.addAttribute("activePage", "dashboard");
+
+        model.addAttribute(
+                "stats",
+                dashboardService.getStatsForUser(userId)
+        );
+
+        String username = userDetails.getUsername();
+
+        model.addAttribute("username", username);
+        model.addAttribute(
+                "avatarInitial",
+                username.substring(0, 1).toUpperCase()
+        );
+        model.addAttribute(
+                "recentDocuments",
+                dashboardService.getRecentDocuments(userId)
+        );
+
+
         return "dashboard";
     }
 }

@@ -17,4 +17,6 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
     List<Collection> findByDocumentsId(Long documentId);
 
     boolean existsByIdAndOwnerId(Long id, Long ownerId);
+
+    long countByOwnerId(Long ownerId);
 }

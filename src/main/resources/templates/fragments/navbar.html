@@ -1,10 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
 
-</body>
-</html>
+<header class="topbar" th:fragment="navbar">
+
+    <div class="topbar-left">
+        <div class="breadcrumb">
+            <span>Workspace</span>
+            <span class="breadcrumb-separator">/</span>
+
+            <strong th:text="${activePage == 'assistant' ? 'AI Assistant' : 'Dashboard'}">
+                Dashboard
+            </strong>
+        </div>
+    </div>
+
+    <div class="topbar-right">
+
+        <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input type="text"
+                   placeholder="Search your workspace..."
+                   disabled>
+            <span class="search-shortcut">⌘ K</span>
+        </div>
+
+        <button type="button"
+                class="notification-button"
+                aria-label="Notifications">
+            ♧
+        </button>
+
+        <div class="user-profile">
+            <div class="user-avatar"
+                 th:text="${avatarInitial}">
+                U
+            </div>
+
+            <div class="user-info">
+                <strong th:text="${username}">Username</strong>
+                <span>Personal workspace</span>
+            </div>
+        </div>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="logout-button">
+                Logout ↗
+            </button>
+        </form>
+
+    </div>
+
+</header>
