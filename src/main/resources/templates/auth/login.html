@@ -1,49 +1,127 @@
 
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuMind | Login</title>
+
+    <title>DocuMind | Sign In</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
+
 <body>
 
-<h1>Welcome to DocuMind</h1>
-<p>Sign in to access your documents and AI assistant.</p>
+<div class="auth-page">
 
-<div th:if="${param.error}">
-    Invalid username or password.
+    <!-- LEFT BRAND PANEL -->
+    <section class="auth-brand">
+
+        <div class="brand-logo">
+            <div class="brand-icon">D</div>
+            <span>DocuMind</span>
+        </div>
+
+        <div class="brand-content">
+            <h1>
+                Your documents.<br>
+                Your knowledge.<br>
+                <span class="brand-highlight">One intelligent space.</span>
+            </h1>
+
+            <p>
+                Upload your documents, ask questions,
+                and discover information with the power
+                of artificial intelligence.
+            </p>
+        </div>
+
+        <div class="brand-footer">
+            © 2026 DocuMind. All rights reserved.
+        </div>
+
+    </section>
+
+
+    <!-- RIGHT LOGIN FORM -->
+    <main class="auth-main">
+
+        <div class="auth-container">
+
+            <div class="auth-heading">
+                <h2>Welcome back</h2>
+                <p>Sign in to continue to your workspace.</p>
+            </div>
+
+            <div th:if="${param.error}" class="alert alert-danger">
+                Invalid username or password.
+            </div>
+
+            <div th:if="${param.logout}" class="alert alert-success">
+                You have been logged out successfully.
+            </div>
+
+            <div th:if="${param.registered}" class="alert alert-success">
+                Account created successfully. You can now sign in.
+            </div>
+
+            <form class="auth-form"
+                  th:action="@{/login}"
+                  method="post">
+
+                <div class="form-group">
+
+                    <label class="form-label" for="username">
+                        Username
+                    </label>
+
+                    <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-control"
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                            required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="form-label" for="password">
+                        Password
+                    </label>
+
+                    <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required>
+
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Sign in to DocuMind →
+                </button>
+
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account?
+                <a th:href="@{/register}">Create an account</a>
+            </div>
+
+        </div>
+
+    </main>
+
 </div>
-
-<div th:if="${param.logout}">
-    You have been logged out successfully.
-</div>
-
-<form th:action="@{/login}" method="post">
-
-    <div>
-        <label for="username">Username</label>
-        <input
-                type="text"
-                id="username"
-                name="username"
-                required
-        >
-    </div>
-
-    <div>
-        <label for="password">Password</label>
-        <input
-                type="password"
-                id="password"
-                name="password"
-                required
-        >
-    </div>
-
-    <button type="submit">Sign in</button>
-
-</form>
 
 </body>
 </html>
