@@ -129,9 +129,9 @@ class SearchEvaluationTest {
     }
 
     /**
-     * RAGServiceImpl answers "I could not find this" without calling the LLM when the best chunk
-     * scores below app.rag.min-score. Every real eval question must stay above that threshold,
-     * otherwise correct answers would be refused. Unrelated questions are printed to show the margin.
+     * RAGServiceImpl sends no sources to the LLM when the best chunk scores below app.rag.min-score.
+     * Every real eval question must stay above that threshold, otherwise the LLM would never see
+     * the right chunk and could not answer. Unrelated questions are printed to show the margin.
      */
     @Test
     void minScoreDoesNotRejectRealQuestions() throws IOException {

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class RAGServiceImplTest {
 
-    private static final String NOT_FOUND = "I could not find this in your documents.";
+    private static final String NO_SOURCES = "Sources:\nnone";
     private static final int TOP_K = 5;
     private static final double MIN_SCORE = 0.3;
     private static final Long OWNER_ID = 42L;
@@ -84,34 +84,47 @@ class RAGServiceImplTest {
         }
 
         @Test
-        void noResultsGivesNotFoundWithoutCallingTheLlm() {
+        void noResultsStillCallsTheLlmWithNoSources() {
             searchResults = List.of();
+            llm.willReply("Hello! How can I help with your documents?");
 
-            RagAnswer answer = rag.answer("Anything?", List.of(), OWNER_ID);
+            RagAnswer answer = rag.answer("hello", List.of(), OWNER_ID);
 
-            assertEquals(NOT_FOUND, answer.answer());
+            assertEquals(1, llm.calls().size(), "greetings and small talk are answered by the LLM");
+            assertTrue(lastPrompt().startsWith(NO_SOURCES));
+            assertTrue(lastPrompt().endsWith("Question: hello"));
+            assertEquals("Hello! How can I help with your documents?", answer.answer());
             assertTrue(answer.sources().isEmpty());
-            assertTrue(llm.calls().isEmpty(), "the LLM must not be called when nothing was found");
         }
 
         @Test
-        void bestScoreBelowMinScoreGivesNotFoundWithoutCallingTheLlm() {
+        void bestScoreBelowMinScoreSendsNoSources() {
             searchResults = List.of(result(1, "Handbook", "Unrelated text.", 0.29));
 
-            RagAnswer answer = rag.answer("What is the CEO's favourite colour?", List.of(), OWNER_ID);
+            rag.answer("What is the CEO's favourite colour?", List.of(), OWNER_ID);
 
-            assertEquals(NOT_FOUND, answer.answer());
-            assertTrue(answer.sources().isEmpty());
-            assertTrue(llm.calls().isEmpty());
+            assertTrue(lastPrompt().startsWith(NO_SOURCES));
+            assertFalse(lastPrompt().contains("Unrelated text."), "weak chunks must not reach the LLM");
+            assertFalse(lastPrompt().contains("[1]"));
         }
 
         @Test
-        void bestScoreExactlyAtMinScoreStillCallsTheLlm() {
+        void withoutSourcesCitationsInTheReplyAreIgnored() {
+            searchResults = List.of(result(1, "Handbook", "Unrelated text.", 0.29));
+            llm.willReply("Something [1].");
+
+            RagAnswer answer = rag.answer("Question?", List.of(), OWNER_ID);
+
+            assertTrue(answer.sources().isEmpty(), "there is no source 1 to point to");
+        }
+
+        @Test
+        void bestScoreExactlyAtMinScoreSendsTheSources() {
             searchResults = List.of(result(1, "Handbook", "Borderline text.", MIN_SCORE));
 
             rag.answer("Borderline question?", List.of(), OWNER_ID);
 
-            assertEquals(1, llm.calls().size());
+            assertTrue(lastPrompt().contains("[1] (Handbook)\nBorderline text."));
         }
     }
 
@@ -128,7 +141,9 @@ class RAGServiceImplTest {
 
             String systemPrompt = llm.lastCall().systemPrompt();
             assertTrue(systemPrompt.contains("[1]"), "the prompt explains the citation format");
-            assertTrue(systemPrompt.contains(NOT_FOUND), "the prompt gives the exact not-found sentence");
+            assertTrue(systemPrompt.contains("greeting"), "the prompt allows natural replies to small talk");
+            assertTrue(systemPrompt.contains("could not find it"), "the prompt says what to do when the answer is missing");
+            assertTrue(systemPrompt.contains("Never use outside knowledge"), "the prompt forbids outside knowledge");
         }
 
         @Test
@@ -244,11 +259,11 @@ class RAGServiceImplTest {
         @Test
         void answerWithoutCitationsHasNoSources() {
             givenThreeResults();
-            llm.willReply(NOT_FOUND);
+            llm.willReply("I could not find this in your documents.");
 
             RagAnswer answer = rag.answer("Question?", List.of(), OWNER_ID);
 
-            assertEquals(NOT_FOUND, answer.answer());
+            assertEquals("I could not find this in your documents.", answer.answer());
             assertTrue(answer.sources().isEmpty());
         }
 

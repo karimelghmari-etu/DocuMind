@@ -48,14 +48,20 @@ class RAGServiceManualTest {
         System.out.println("KNOWN:   " + known.answer());
         System.out.println("SOURCES: " + known.sources().stream().map(s -> s.number()).toList());
 
-        // 2. The answer is NOT in the handbook: expect the "could not find" sentence.
+        // 2. The answer is NOT in the handbook: expect a short "could not find it" reply with no citations.
         RagAnswer unknown = rag.answer("What is the CEO's favourite colour?", List.of(), 1L);
         System.out.println("UNKNOWN: " + unknown.answer());
         System.out.println("SOURCES: " + unknown.sources().stream().map(s -> s.number()).toList());
+
+        // 3. Small talk: expect a natural reply, not a "could not find" sentence.
+        RagAnswer greeting = rag.answer("hello", List.of(), 1L);
+        System.out.println("GREETING: " + greeting.answer());
 
         assertFalse(known.sources().isEmpty(), "the known answer should cite at least one source");
         assertTrue(known.answer().contains("25"), "the handbook says 25 days");
         assertFalse(known.answer().contains("<think>"), "reasoning text leaked into the answer");
         assertTrue(unknown.sources().isEmpty(), "an unknown answer should cite nothing");
+        assertTrue(greeting.sources().isEmpty(), "a greeting should cite nothing");
+        assertFalse(greeting.answer().toLowerCase().contains("could not find"), "a greeting is not a failed search");
     }
 }

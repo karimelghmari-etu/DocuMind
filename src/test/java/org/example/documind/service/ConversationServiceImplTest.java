@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 class ConversationServiceImplTest {
 
-    private static final String NOT_FOUND = "I could not find this in your documents.";
+    private static final String NO_SOURCES = "Sources:\nnone";
     private static final String VACATION =
             "Every full-time employee receives 25 days of paid vacation each calendar year.";
     private static final String CARRY_OVER =
@@ -265,20 +265,40 @@ class ConversationServiceImplTest {
 
         MessageDTO answer = conversationService.sendMessage(id, "How many vacation days do I get?", bob.getId());
 
-        assertEquals(NOT_FOUND, answer.content());
-        assertTrue(answer.sources().isEmpty());
-        assertTrue(llm.calls().isEmpty(), "nothing relevant, so the LLM is not called");
+        String prompt = lastUserTurn();
+        assertTrue(prompt.startsWith(NO_SOURCES), "bob has no documents, so no sources are sent");
+        assertFalse(prompt.contains(VACATION), "alice's handbook must never reach bob's prompt");
+        assertTrue(answer.sources().isEmpty(), "the fake reply cites [1], but there is no source 1");
     }
 
     @Test
-    void notFoundAnswersAreSavedToo() {
+    void answersWithoutSourcesAreSavedToo() {
         Long id = newConversation(bob);
+        llm.willReply("I couldn't find that in your documents.");
 
-        conversationService.sendMessage(id, "How many vacation days do I get?", bob.getId());
+        MessageDTO answer = conversationService.sendMessage(id, "How many vacation days do I get?", bob.getId());
 
         List<Message> saved = savedMessages(id);
         assertEquals(2, saved.size());
-        assertEquals(NOT_FOUND, saved.get(1).getContent());
+        assertEquals("I couldn't find that in your documents.", saved.get(1).getContent());
+        assertTrue(answer.sources().isEmpty());
+    }
+
+    @Test
+    void greetingGetsAnAnswerWithoutSources() {
+        Long id = newConversation(alice);
+        llm.willReply("Hello! Ask me anything about your documents.");
+
+        MessageDTO answer = conversationService.sendMessage(id, "hello", alice.getId());
+
+        assertEquals(1, llm.calls().size(), "the LLM answers greetings too");
+        assertEquals("Hello! Ask me anything about your documents.", answer.content());
+        assertTrue(answer.sources().isEmpty());
+    }
+
+    private String lastUserTurn() {
+        List<ChatTurn> conversation = llm.lastCall().conversation();
+        return conversation.get(conversation.size() - 1).content();
     }
 
     @Test

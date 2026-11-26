@@ -26,15 +26,17 @@ public class RAGServiceImpl implements RAGService {
     private final double minScore;
 
     private static final String SYSTEM_PROMPT = """
-        You are DocuMind, an assistant that answers questions about the user's documents.
+        You are DocuMind, a friendly assistant that answers questions about the user's documents.
         Rules:
-        - Answer only with information from the numbered sources given with the question.
-        - After each fact, cite its source number in square brackets, like [1] or [2][3].
-        - If the sources do not contain the answer, reply exactly: "I could not find this in your documents."
-        - Never use outside knowledge and never guess.
-        - Answer in the same language as the question, and be concise.
+        - If the message is a greeting, thanks, small talk, or a question about what you can do,
+          reply briefly and naturally. Do not cite anything.
+        - For any question that needs facts, use only the numbered sources given with the question,
+          and cite each fact like [1] or [2][3].
+        - If the sources do not contain the answer, say briefly that you could not find it in the
+          user's documents and suggest rephrasing the question or uploading a relevant document.
+        - Never use outside knowledge and never guess facts.
+        - Answer in the same language as the user, and be concise.
         """;
-    private static final String NOT_FOUND = "I could not find this in your documents.";
 
     public RAGServiceImpl(SearchService searchService, LLMService llmService, @Value("${app.rag.top-k}") int topk, @Value("${app.rag.min-score}") double minScore){
         this.searchService = searchService;
@@ -46,13 +48,21 @@ public class RAGServiceImpl implements RAGService {
     public RagAnswer answer(String question, List<ChatTurn> history, Long ownerId) {
         List<SearchResultDTO> results = searchService.search(question, topK, ownerId);
 
-        if (results.isEmpty() || results.get(0).score() < minScore){
-            return new RagAnswer(NOT_FOUND, List.of());
+        List<SearchResultDTO> relevant;
+        if (results.isEmpty() || results.get(0).score() < minScore) {
+            relevant = List.of();
+        } else {
+            relevant = results;
         }
 
         StringBuilder sources = new StringBuilder();
-        for (int i = 0; i < results.size(); i++) {
-            SearchResultDTO r = results.get(i);
+
+        if (relevant.isEmpty()) {
+            sources.append("none (no relevant passages were found in the user's documents)\n\n");
+        }
+
+        for (int i = 0; i < relevant.size(); i++) {
+            SearchResultDTO r = relevant.get(i);
             sources.append("[").append(i + 1).append("] (").append(r.documentTitle()).append(")\n")
                     .append(r.content()).append("\n\n");
         }
@@ -64,8 +74,8 @@ public class RAGServiceImpl implements RAGService {
         String reply = llmService.generate(SYSTEM_PROMPT, conversation);
 
         List<CitedSource> cited = new ArrayList<>();
-        for (int n : extractCitations(reply, results.size())) {
-            cited.add(new CitedSource(n, results.get(n - 1)));
+        for (int n : extractCitations(reply, relevant.size())) {
+            cited.add(new CitedSource(n, relevant.get(n - 1)));
         }
 
         return new RagAnswer(reply, cited);

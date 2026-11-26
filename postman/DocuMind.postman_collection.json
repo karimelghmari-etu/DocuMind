@@ -1232,7 +1232,7 @@
                   "pm.test('201 Created', () => pm.response.to.have.status(201));",
                   "const msg = pm.response.json();",
                   "console.log('ANSWER:', msg.content);",
-                  "pm.test('says it could not find the answer', () => pm.expect(msg.content).to.include('could not find'));",
+                  "pm.test('gives a real answer, not an empty one', () => pm.expect(msg.content.trim()).to.not.be.empty);",
                   "pm.test('cites nothing', () => pm.expect(msg.sources).to.eql([]));"
                 ]
               }
