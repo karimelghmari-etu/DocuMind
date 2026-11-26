@@ -171,5 +171,15 @@ public class DocumentServiceImpl implements DocumentService {
         job.setErrorMessage(null);
         document.setStatus(DocumentStatus.PENDING);
     }
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getRecentDocuments(Long ownerId) {
+
+        return documentRepository
+                .findTop5ByOwnerIdOrderByUploadedAtDesc(ownerId)
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
 }
 

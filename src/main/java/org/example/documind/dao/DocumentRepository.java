@@ -18,4 +18,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     List<Document> findByOwnerIdAndStatus(Long ownerId, DocumentStatus status);
 
     boolean existsByIdAndOwnerId(Long id, Long ownerId);
+
+    long countByOwnerId(Long ownerId);
+
+    List<Document> findTop5ByOwnerIdOrderByUploadedAtDesc(Long ownerId);
 }

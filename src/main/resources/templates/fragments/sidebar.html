@@ -1,0 +1,74 @@
+
+<aside class="sidebar" th:fragment="sidebar">
+
+    <!-- LOGO -->
+    <div class="sidebar-brand">
+        <div class="brand-icon">D</div>
+        <span>DocuMind</span>
+    </div>
+
+    <!-- MAIN NAVIGATION -->
+    <div class="sidebar-section">
+        <p class="sidebar-label">WORKSPACE</p>
+
+        <nav class="sidebar-nav">
+
+            <a th:href="@{/dashboard}"
+               class="nav-link"
+               th:classappend="${activePage == 'dashboard'} ? ' active' : ''">
+                <span class="nav-icon">▦</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="#" class="nav-link disabled-link"
+               title="Documents page coming soon">
+                <span class="nav-icon">▤</span>
+                <span>My Documents</span>
+            </a>
+
+            <a href="#" class="nav-link disabled-link"
+               title="Collections page coming soon">
+                <span class="nav-icon">▧</span>
+                <span>Collections</span>
+            </a>
+
+            <a th:href="@{/assistant}"
+               class="nav-link"
+               th:classappend="${activePage == 'assistant'} ? ' active' : ''">
+                <span class="nav-icon">✧</span>
+                <span>AI Assistant</span>
+            </a>
+
+            <a href="#" class="nav-link disabled-link"
+               title="History page coming soon">
+                <span class="nav-icon">◷</span>
+                <span>History</span>
+            </a>
+
+        </nav>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <div class="sidebar-bottom">
+
+        <p class="sidebar-label">PREFERENCES</p>
+
+        <a href="#" class="nav-link disabled-link"
+           title="Settings page coming soon">
+            <span class="nav-icon">⚙</span>
+            <span>Settings</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-help">
+            <div class="help-icon">?</div>
+            <div>
+                <strong>Need help?</strong>
+                <p>We're here to help you.</p>
+            </div>
+        </div>
+
+    </div>
+
+</aside>

@@ -1,0 +1,183 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DocuMind | Dashboard</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <!-- SIDEBAR -->
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <!-- MAIN AREA -->
+    <main class="main-area">
+
+        <!-- NAVBAR -->
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <!-- DASHBOARD CONTENT -->
+        <section class="dashboard-content">
+
+            <div class="page-heading">
+                <div>
+                    <h1>Welcome to DocuMind 👋</h1>
+                    <p>Here's an overview of your workspace.</p>
+                </div>
+            </div>
+
+            <!-- STATISTICS -->
+            <div class="stats-grid">
+
+                <!-- TOTAL DOCUMENTS -->
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon">▤</div>
+                    </div>
+
+                    <h3 th:text="${stats.totalDocuments}">0</h3>
+                    <p>Total documents</p>
+                </div>
+
+                <!-- COLLECTIONS -->
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon">▧</div>
+                    </div>
+
+                    <h3 th:text="${stats.totalCollections}">0</h3>
+                    <p>Collections</p>
+                </div>
+
+                <!-- AI CONVERSATIONS -->
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon">✧</div>
+                    </div>
+
+                    <h3 th:text="${stats.totalConversations}">0</h3>
+                    <p>AI conversations</p>
+                </div>
+
+                <!-- PROCESSING JOBS -->
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon">◷</div>
+                    </div>
+
+                    <h3 th:text="${stats.totalProcessingJobs}">0</h3>
+                    <p>Processing jobs</p>
+                </div>
+
+            </div>
+
+            <!-- MAIN CONTENT PANELS -->
+            <div class="content-grid">
+
+                <!-- RECENT DOCUMENTS -->
+                <div class="content-panel">
+
+                    <div class="panel-heading">
+                        <h2>Recent documents</h2>
+                        <a href="#">View all</a>
+                    </div>
+
+                    <!-- DOCUMENTS AVAILABLE -->
+                    <div th:if="${not #lists.isEmpty(recentDocuments)}"
+                         class="recent-documents-list">
+
+                        <div class="recent-document-item"
+                             th:each="document : ${recentDocuments}">
+
+                            <div class="document-info">
+
+                                <div class="document-icon">
+                                    ▤
+                                </div>
+
+                                <div class="document-details">
+                                    <h3 th:text="${document.title}">
+                                        Document title
+                                    </h3>
+
+                                    <p th:text="${#temporals.format(document.uploadedAt, 'dd MMM yyyy')}">
+                                        25 Nov 2026
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <span class="document-status"
+                                  th:text="${document.status}"
+                                  th:classappend="' status-' + ${#strings.toLowerCase(document.status.name())}">
+                PENDING
+            </span>
+
+                        </div>
+
+                    </div>
+
+                    <!-- EMPTY STATE -->
+                    <div th:if="${#lists.isEmpty(recentDocuments)}"
+                         class="empty-state">
+
+                        <div class="empty-state-icon">
+                            ▤
+                        </div>
+
+                        <h3>No documents yet</h3>
+
+                        <p>
+                            Upload your first document to start
+                            exploring your knowledge with AI.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- AI ASSISTANT -->
+                <div class="content-panel">
+
+                    <div class="panel-heading">
+                        <h2>AI Assistant</h2>
+                    </div>
+
+                    <div class="empty-state">
+
+                        <div class="empty-state-icon">
+                            ✧
+                        </div>
+
+                        <h3>Your AI workspace is ready</h3>
+
+                        <p>
+                            Start by uploading documents.
+                            Then you can ask questions and get
+                            answers based on your own content.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

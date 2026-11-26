@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DocuMind | AI Assistant</title>
+
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/assistant.css}">
+</head>
+<script th:src="@{/js/assistant.js}"></script>
+
+
+<body>
+
+<div class="dashboard-layout">
+
+    <!-- Existing sidebar -->
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <!-- Existing navbar -->
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="assistant-page">
+
+            <!-- Assistant header -->
+            <div class="assistant-heading">
+                <div>
+                    <h1>AI Assistant</h1>
+                    <p>Chat with your documents and get intelligent answers.</p>
+                </div>
+
+                <button id="newConversationBtn" class="new-chat-btn">
+                    <span>＋</span>
+                    New conversation
+                </button>
+            </div>
+
+            <!-- Main assistant layout -->
+            <div class="assistant-layout">
+
+                <!-- Conversations sidebar -->
+                <aside class="conversations-panel">
+
+                    <div class="conversations-header">
+                        <h2>Conversations</h2>
+                        <span id="conversationCount">0</span>
+                    </div>
+
+                    <div id="conversationsList" class="conversations-list">
+
+                        <!-- Conversations will be loaded with JavaScript -->
+
+                        <div class="conversation-empty">
+                            <p>No conversations yet.</p>
+                        </div>
+
+                    </div>
+
+                </aside>
+
+                <!-- Chat area -->
+                <section class="chat-panel">
+
+                    <!-- Empty state -->
+                    <div id="chatEmptyState" class="chat-empty-state">
+
+                        <div class="assistant-icon">✧</div>
+
+                        <h2>How can I help you?</h2>
+
+                        <p>
+                            Ask questions about your uploaded documents
+                            and let DocuMind find the answers.
+                        </p>
+
+                    </div>
+
+                    <!-- Messages -->
+                    <div id="messagesContainer" class="messages-container">
+
+                        <!-- Messages will be loaded with JavaScript -->
+
+                    </div>
+
+                    <!-- Message input -->
+                    <form id="chatForm" class="chat-input-area">
+
+                        <textarea
+                                id="messageInput"
+                                placeholder="Ask something about your documents..."
+                                rows="1"
+                                maxlength="2000"
+                                required>
+                        </textarea>
+
+                        <button type="submit" id="sendMessageBtn">
+                            Send
+                        </button>
+
+                    </form>
+
+                    <p class="chat-disclaimer">
+                        DocuMind can make mistakes. Verify important information.
+                    </p>
+
+                </section>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>
