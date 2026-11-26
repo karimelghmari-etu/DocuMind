@@ -20,10 +20,9 @@
                 <span>Dashboard</span>
             </a>
 
-            <a href="#" class="nav-link disabled-link"
-               title="Documents page coming soon">
-                <span class="nav-icon">▤</span>
-                <span>My Documents</span>
+            <a th:href="@{/documents}" class="nav-link"
+               th:classappend="${activePage == 'documents'} ? ' active' : ''">
+                My Documents
             </a>
 
             <a href="#" class="nav-link disabled-link"

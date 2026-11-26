@@ -1,0 +1,318 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DocuMind | Documents</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/documents.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <!-- Sidebar -->
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <!-- Navbar -->
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="documents-page">
+
+            <!-- Success message -->
+            <div th:if="${successMessage}"
+                 class="success-message"
+                 th:text="${successMessage}">
+            </div>
+
+            <!-- Page heading -->
+            <div class="documents-heading">
+                <div>
+                    <span class="page-eyebrow">WORKSPACE</span>
+                    <h1>My Documents</h1>
+                    <p>Manage and organize your uploaded documents.</p>
+                </div>
+
+                <div class="documents-heading-icon">
+                    📁
+                </div>
+            </div>
+
+            <!-- Upload section -->
+            <section class="upload-section">
+
+                <div class="upload-section-header">
+                    <div>
+                        <h2>Upload a document</h2>
+                        <p>Add a document to your DocuMind workspace.</p>
+                    </div>
+
+                    <div class="upload-section-icon">↑</div>
+                </div>
+
+                <form th:action="@{/documents/upload}"
+                      method="post"
+                      enctype="multipart/form-data"
+                      class="upload-form">
+
+                    <!-- CSRF token -->
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}">
+
+                    <!-- Document title -->
+                    <div class="form-group">
+
+                        <label for="documentTitle">Document title</label>
+
+                        <input type="text"
+                               id="documentTitle"
+                               name="title"
+                               maxlength="255"
+                               placeholder="Example: Artificial Intelligence Course">
+
+                        <small>
+                            Give your document a meaningful name.
+                        </small>
+
+                    </div>
+
+                    <!-- File selection -->
+                    <div class="form-group">
+
+                        <label>Select your file</label>
+
+                        <label for="documentFile" class="file-drop-area">
+
+                            <div class="file-upload-icon">
+                                📄
+                            </div>
+
+                            <div class="file-upload-text">
+                                <strong>Click to browse files</strong>
+                                <span>Choose a PDF, TXT or DOCX document</span>
+                            </div>
+
+                            <span class="browse-file-btn">
+                                Browse files
+                            </span>
+
+                        </label>
+
+                        <input type="file"
+                               id="documentFile"
+                               name="file"
+                               accept=".pdf,.txt,.docx"
+                               required
+                               hidden>
+
+                        <div id="selectedFile" class="selected-file">
+                            <span>📎</span>
+                            <span id="selectedFileName">
+                                No file selected
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <!-- Upload button -->
+                    <div class="upload-form-footer">
+
+                        <span class="upload-hint">
+                            Maximum file size: 50 MB
+                        </span>
+
+                        <button type="submit" class="upload-btn">
+                            <span>↑</span>
+                            Upload document
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+            <!-- Documents statistics -->
+            <div class="documents-stats">
+
+                <div class="document-stat-card">
+                    <div class="stat-icon">📄</div>
+
+                    <div class="stat-information">
+                        <span>Total documents</span>
+
+                        <strong th:text="${#lists.size(documents)}">
+                            0
+                        </strong>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Documents table -->
+            <div class="documents-table-container">
+
+                <div class="table-heading">
+
+                    <div>
+                        <h2>All Documents</h2>
+                        <p>Manage your uploaded files and their status.</p>
+                    </div>
+
+                    <span class="document-count"
+                          th:text="${#lists.size(documents)} + ' documents'">
+                        0 documents
+                    </span>
+
+                </div>
+
+                <div class="table-responsive">
+
+                    <table class="documents-table">
+
+                        <thead>
+                        <tr>
+                            <th>DOCUMENT</th>
+                            <th>STATUS</th>
+                            <th>UPLOADED</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+
+                        <!-- Document rows -->
+                        <tr th:each="document : ${documents}">
+
+                            <!-- Document title -->
+                            <td>
+                                <div class="document-name">
+
+                                    <span class="document-icon">
+                                        📄
+                                    </span>
+
+                                    <span class="document-title"
+                                          th:text="${document.title}">
+                                        Document title
+                                    </span>
+
+                                </div>
+                            </td>
+
+                            <!-- Document status -->
+                            <td>
+                                <span class="status-badge"
+                                      th:classappend="${document.status != null ? 'status-' + #strings.toLowerCase(document.status.name()) : ''}"
+                                      th:text="${document.status}">
+                                    PENDING
+                                </span>
+                            </td>
+
+                            <!-- Upload date -->
+                            <td class="document-date"
+                                th:text="${document.uploadedAt != null ? #temporals.format(document.uploadedAt, 'dd/MM/yyyy HH:mm') : '-'}">
+                                25/11/2026
+                            </td>
+
+                            <!-- Actions -->
+                            <td>
+
+                                <div class="document-actions">
+
+                                    <button type="button"
+                                            class="action-btn"
+                                            aria-label="Document actions">
+                                        ⋮
+                                    </button>
+
+                                    <div class="actions-menu">
+
+                                        <!-- Reprocess only failed documents -->
+                                        <form th:if="${document.status != null and document.status.name() == 'FAILED'}"
+                                              th:action="@{/documents/{id}/reprocess(id=${document.id})}"
+                                              method="post">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}">
+
+                                            <button type="submit">
+                                                Reprocess document
+                                            </button>
+
+                                        </form>
+
+                                        <!-- Delete document -->
+                                        <form th:action="@{/documents/{id}/delete(id=${document.id})}"
+                                              method="post"
+                                              onsubmit="return confirm('Are you sure you want to delete this document?');">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}">
+
+                                            <button type="submit"
+                                                    class="delete-action">
+                                                Delete document
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        <!-- Empty state -->
+                        <tr th:if="${#lists.isEmpty(documents)}">
+
+                            <td colspan="4" class="empty-documents">
+
+                                <div class="empty-state-content">
+
+                                    <span class="empty-icon">📂</span>
+
+                                    <h3>No documents yet</h3>
+
+                                    <p>
+                                        Upload your first document to start
+                                        using DocuMind AI.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script th:src="@{/js/documents.js}"></script>
+
+</body>
+</html>
