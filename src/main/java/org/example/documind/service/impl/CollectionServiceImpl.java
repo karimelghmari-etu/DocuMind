@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -86,4 +88,11 @@ public class CollectionServiceImpl implements CollectionService {
         Document document = documentRepository.findByIdAndOwnerId(documentId, ownerId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
         collection.getDocuments().remove(document);
         return mapToDTO(collection);    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> getDocumentIds(Long collectionId, Long ownerId) {
+        Collection collection = collectionRepository.findByIdAndOwnerId(collectionId, ownerId).orElseThrow(() -> new CollectionNotFoundException("Collection not found"));
+        return collection.getDocuments().stream().map(Document::getId).collect(Collectors.toSet());
+    }
 }

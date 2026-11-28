@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DocuMind | Settings</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/documents.css}">
+    <link rel="stylesheet" th:href="@{/css/pages.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="documents-page">
+
+            <th:block th:replace="~{fragments/flash :: flash}"></th:block>
+
+            <div class="documents-heading">
+                <div>
+                    <span class="page-eyebrow">PREFERENCES</span>
+                    <h1>Settings</h1>
+                    <p>Your account information and password.</p>
+                </div>
+                <div class="documents-heading-icon">⚙</div>
+            </div>
+
+            <div class="two-columns">
+
+                <!-- Account -->
+                <section class="upload-section">
+                    <div class="upload-section-header">
+                        <div>
+                            <h2>Account</h2>
+                            <p>These details were set when you registered.</p>
+                        </div>
+                        <div class="upload-section-icon" th:text="${avatarInitial}">U</div>
+                    </div>
+
+                    <dl class="account-details">
+                        <dt>Username</dt>
+                        <dd th:text="${account.username}">username</dd>
+
+                        <dt>Email</dt>
+                        <dd th:text="${account.email}">email@example.com</dd>
+
+                        <dt>Member since</dt>
+                        <dd th:text="${account.createdAt != null ? #temporals.format(account.createdAt, 'dd MMMM yyyy') : '-'}">01 January 2026</dd>
+                    </dl>
+                </section>
+
+                <!-- Change password -->
+                <section class="upload-section">
+                    <div class="upload-section-header">
+                        <div>
+                            <h2>Change password</h2>
+                            <p>At least 8 characters. You stay logged in on this device.</p>
+                        </div>
+                        <div class="upload-section-icon">🔒</div>
+                    </div>
+
+                    <!-- th:object is used only for the error messages: password values are never written back. -->
+                    <form th:action="@{/settings/password}" th:object="${passwordForm}" method="post" class="upload-form" novalidate>
+
+                        <div class="form-group">
+                            <label for="currentPassword">Current password</label>
+                            <input type="password" id="currentPassword" name="currentPassword"
+                                   autocomplete="current-password" required
+                                   th:classappend="${#fields.hasErrors('currentPassword')} ? ' input-error' : ''">
+                            <small class="field-error" th:if="${#fields.hasErrors('currentPassword')}"
+                                   th:errors="*{currentPassword}">Error</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="newPassword">New password</label>
+                            <input type="password" id="newPassword" name="newPassword"
+                                   autocomplete="new-password" required minlength="8"
+                                   th:classappend="${#fields.hasErrors('newPassword')} ? ' input-error' : ''">
+                            <small class="field-error" th:if="${#fields.hasErrors('newPassword')}"
+                                   th:errors="*{newPassword}">Error</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm new password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword"
+                                   autocomplete="new-password" required
+                                   th:classappend="${#fields.hasErrors('confirmPassword')} ? ' input-error' : ''">
+                            <small class="field-error" th:if="${#fields.hasErrors('confirmPassword')}"
+                                   th:errors="*{confirmPassword}">Error</small>
+                        </div>
+
+                        <div class="upload-form-footer">
+                            <span class="upload-hint"></span>
+                            <button type="submit" class="upload-btn">Change password</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

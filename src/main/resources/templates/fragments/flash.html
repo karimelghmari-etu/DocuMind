@@ -1,0 +1,13 @@
+<!-- Success and error messages set with RedirectAttributes.addFlashAttribute(...) or the model. -->
+<th:block th:fragment="flash">
+    <div th:if="${successMessage}"
+         class="success-message"
+         role="status"
+         th:text="${successMessage}">
+    </div>
+    <div th:if="${errorMessage}"
+         class="error-message"
+         role="alert"
+         th:text="${errorMessage}">
+    </div>
+</th:block>

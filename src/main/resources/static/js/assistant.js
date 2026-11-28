@@ -38,6 +38,11 @@ document.addEventListener("DOMContentLoaded", () => {
             headers
         });
 
+        // An expired session redirects to the HTML login page instead of returning JSON.
+        if (response.redirected && new URL(response.url).pathname === "/login") {
+            throw new Error("Your session has expired. Please refresh the page and log in again.");
+        }
+
         if (!response.ok) {
             const message = await response.text();
             throw new Error(message || `HTTP error ${response.status}`);
@@ -168,7 +173,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const content = document.createElement("div");
             content.className = "message-content";
-            content.textContent = message.content;
+
+            const sourceNumbers = new Set((message.sources || []).map(source => source.number));
+            if (message.role === "ASSISTANT" && sourceNumbers.size > 0) {
+                renderWithCitations(content, message.content, sourceNumbers, message.id);
+            } else {
+                content.textContent = message.content;
+            }
 
             messageElement.append(role, content);
 
@@ -183,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 message.sources.forEach(source => {
                     const sourceElement = document.createElement("details");
                     sourceElement.className = "source-item";
+                    sourceElement.id = sourceElementId(message.id, source.number);
 
                     const summary = document.createElement("summary");
                     summary.textContent =
@@ -214,14 +226,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const question = messageInput.value.trim();
 
-        if (!question || !currentConversationId || isSending) {
+        if (!question || isSending) {
             return;
         }
+
+        let temporaryMessage = null;
+        let loading = null;
 
         try {
             isSending = true;
             sendMessageBtn.disabled = true;
             messageInput.disabled = true;
+            removeChatError();
+
+            // No conversation selected yet: start one, so the first question is never lost.
+            if (!currentConversationId) {
+                const conversation = await apiRequest("/assistant/conversations", {
+                    method: "POST",
+                    body: JSON.stringify({})
+                });
+                currentConversationId = conversation.id;
+                messagesContainer.innerHTML = "";
+                chatEmptyState.style.display = "none";
+                messagesContainer.style.display = "flex";
+            }
 
             const conversationId = currentConversationId;
 
@@ -230,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 messagesContainer.querySelectorAll(".message")
             );
 
-            const temporaryMessage = document.createElement("article");
+            temporaryMessage = document.createElement("article");
             temporaryMessage.className = "message message-user";
 
             const role = document.createElement("div");
@@ -246,7 +274,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             messageInput.value = "";
 
-            const loading = document.createElement("article");
+            loading = document.createElement("article");
             loading.className = "message message-assistant loading-message";
             loading.textContent = "DocuMind is thinking...";
             messagesContainer.appendChild(loading);
@@ -266,7 +294,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("Sending message failed:", error);
-            alert("Unable to send your message. Please try again.");
+            loading?.remove();
+            temporaryMessage?.remove();
+            messageInput.value = question;   // give the question back so it can be sent again
+            showChatError(error.message || "Unable to send your message. Please try again.");
+            await loadConversations();
         } finally {
             isSending = false;
             sendMessageBtn.disabled = false;
@@ -305,11 +337,109 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Show an error inside the chat instead of a browser alert
+    function showChatError(message) {
+        removeChatError();
+        const error = document.createElement("div");
+        error.className = "chat-error";
+        error.id = "chatError";
+        error.setAttribute("role", "alert");
+        error.textContent = message;
+        chatForm.before(error);
+    }
+
+    function removeChatError() {
+        document.getElementById("chatError")?.remove();
+    }
+
     // Event listeners
     newConversationBtn.addEventListener("click", createConversation);
     chatForm.addEventListener("submit", sendMessage);
 
+    // Enter sends, Shift+Enter adds a new line
+    messageInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+            event.preventDefault();
+            chatForm.requestSubmit();
+        }
+    });
+
     // Initial loading
     messagesContainer.style.display = "none";
-    loadConversations();
+
+    // Links from other pages: /assistant?conversation=12 (History) and /assistant?ask=... (Search)
+    const params = new URLSearchParams(window.location.search);
+    const conversationParam = Number(params.get("conversation"));
+    const askParam = params.get("ask");
+
+    if (askParam) {
+        messageInput.value = askParam.slice(0, 2000);
+        messageInput.focus();
+    }
+
+    if (Number.isInteger(conversationParam) && conversationParam > 0) {
+        selectConversation(conversationParam);
+    } else {
+        loadConversations();
+    }
 });
+
+/* =========================================
+   CITATIONS: turn "[1]" and "[1, 3]" in an answer into buttons
+   that open and highlight the matching source below the answer.
+   Built with text nodes only, never innerHTML, so an answer can't inject HTML.
+========================================= */
+
+const CITATION = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+
+function sourceElementId(messageId, number) {
+    return `message-${messageId}-source-${number}`;
+}
+
+function renderWithCitations(container, text, sourceNumbers, messageId) {
+    let last = 0;
+
+    for (const match of text.matchAll(CITATION)) {
+        const numbers = match[1].split(",").map(n => Number(n.trim()));
+
+        // Leave "[7]" as plain text when there is no source 7 (the LLM invented it).
+        if (!numbers.some(n => sourceNumbers.has(n))) {
+            continue;
+        }
+
+        container.append(document.createTextNode(text.slice(last, match.index)));
+        container.append(document.createTextNode("["));
+
+        numbers.forEach((number, i) => {
+            if (i > 0) container.append(document.createTextNode(", "));
+
+            if (sourceNumbers.has(number)) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "citation";
+                button.textContent = String(number);
+                button.title = `Show source ${number}`;
+                button.addEventListener("click", () => openSource(messageId, number));
+                container.append(button);
+            } else {
+                container.append(document.createTextNode(String(number)));
+            }
+        });
+
+        container.append(document.createTextNode("]"));
+        last = match.index + match[0].length;
+    }
+
+    container.append(document.createTextNode(text.slice(last)));
+}
+
+function openSource(messageId, number) {
+    const source = document.getElementById(sourceElementId(messageId, number));
+    if (!source) return;
+
+    source.open = true;
+    source.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    source.classList.remove("source-highlight");
+    void source.offsetWidth;            // restart the animation if clicked twice
+    source.classList.add("source-highlight");
+}

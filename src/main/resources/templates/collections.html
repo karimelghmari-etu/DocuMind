@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DocuMind | Collections</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/documents.css}">
+    <link rel="stylesheet" th:href="@{/css/pages.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="documents-page">
+
+            <th:block th:replace="~{fragments/flash :: flash}"></th:block>
+
+            <!-- Page heading -->
+            <div class="documents-heading">
+                <div>
+                    <span class="page-eyebrow">WORKSPACE</span>
+                    <h1>Collections</h1>
+                    <p>Group related documents together, for example one collection per course or project.</p>
+                </div>
+                <div class="documents-heading-icon">▧</div>
+            </div>
+
+            <!-- Create a collection -->
+            <section class="upload-section">
+                <div class="upload-section-header">
+                    <div>
+                        <h2>New collection</h2>
+                        <p>You can add documents to it on the next page.</p>
+                    </div>
+                    <div class="upload-section-icon">+</div>
+                </div>
+
+                <form th:action="@{/collections}" method="post" class="upload-form">
+
+                    <div class="form-group">
+                        <label for="collectionName">Name</label>
+                        <input type="text"
+                               id="collectionName"
+                               name="name"
+                               required
+                               th:maxlength="${maxName}"
+                               placeholder="Example: Machine Learning course">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="collectionDescription">Description <span class="optional">(optional)</span></label>
+                        <textarea id="collectionDescription"
+                                  name="description"
+                                  rows="2"
+                                  th:maxlength="${maxDescription}"
+                                  placeholder="What is in this collection?"></textarea>
+                    </div>
+
+                    <div class="upload-form-footer">
+                        <span class="upload-hint"></span>
+                        <button type="submit" class="upload-btn">
+                            <span>+</span>
+                            Create collection
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Collection cards -->
+            <div class="documents-table-container">
+                <div class="table-heading">
+                    <div>
+                        <h2>Your collections</h2>
+                        <p>Open a collection to add or remove documents.</p>
+                    </div>
+                    <span class="document-count"
+                          th:text="${#lists.size(collections)} + (${#lists.size(collections)} == 1 ? ' collection' : ' collections')">
+                        0 collections
+                    </span>
+                </div>
+
+                <div class="card-grid" th:unless="${#lists.isEmpty(collections)}">
+                    <article class="collection-card" th:each="collection : ${collections}">
+                        <a class="collection-card-link"
+                           th:href="@{/collections/{id}(id=${collection.id})}">
+                            <span class="collection-card-icon" aria-hidden="true">▧</span>
+                            <h3 th:text="${collection.name}">Collection name</h3>
+                            <p class="collection-card-description"
+                               th:text="${collection.description != null ? collection.description : 'No description'}"
+                               th:classappend="${collection.description == null} ? ' muted' : ''">
+                                Description
+                            </p>
+                        </a>
+
+                        <div class="collection-card-footer">
+                            <span th:text="${collection.documentCount} + (${collection.documentCount} == 1 ? ' document' : ' documents')">
+                                0 documents
+                            </span>
+                            <span class="dot" aria-hidden="true">·</span>
+                            <span th:text="${collection.createdAt != null ? #temporals.format(collection.createdAt, 'dd/MM/yyyy') : ''}">
+                                01/01/2026
+                            </span>
+
+                            <form th:action="@{/collections/{id}/delete(id=${collection.id})}"
+                                  method="post"
+                                  class="inline-form push-right"
+                                  onsubmit="return confirm('Delete this collection? Its documents are kept.');">
+                                <button type="submit" class="link-button danger">Delete</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="empty-state-content padded" th:if="${#lists.isEmpty(collections)}">
+                    <span class="empty-icon">▧</span>
+                    <h3>No collections yet</h3>
+                    <p>Create your first collection above.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

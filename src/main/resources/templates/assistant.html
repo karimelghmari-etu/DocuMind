@@ -94,13 +94,8 @@
                     <!-- Message input -->
                     <form id="chatForm" class="chat-input-area">
 
-                        <textarea
-                                id="messageInput"
-                                placeholder="Ask something about your documents..."
-                                rows="1"
-                                maxlength="2000"
-                                required>
-                        </textarea>
+                        <!-- Keep the tags on one line: whitespace between them would become the value and hide the placeholder. -->
+                        <textarea id="messageInput" placeholder="Ask something about your documents... (Enter to send, Shift+Enter for a new line)" rows="1" maxlength="2000" required></textarea>
 
                         <button type="submit" id="sendMessageBtn">
                             Send

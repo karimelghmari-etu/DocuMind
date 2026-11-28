@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="'DocuMind | ' + ${collection.name}">DocuMind | Collection</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/documents.css}">
+    <link rel="stylesheet" th:href="@{/css/pages.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="documents-page">
+
+            <a class="back-link" th:href="@{/collections}">← All collections</a>
+
+            <th:block th:replace="~{fragments/flash :: flash}"></th:block>
+
+            <!-- Page heading -->
+            <div class="documents-heading">
+                <div>
+                    <span class="page-eyebrow">COLLECTION</span>
+                    <h1 th:text="${collection.name}">Collection name</h1>
+                    <p th:text="${collection.description != null ? collection.description : 'No description yet.'}">
+                        Description
+                    </p>
+                </div>
+                <div class="documents-heading-icon">▧</div>
+            </div>
+
+            <div class="two-columns">
+
+                <!-- Add a document -->
+                <section class="upload-section">
+                    <div class="upload-section-header">
+                        <div>
+                            <h2>Add a document</h2>
+                            <p>Choose one of your documents. It stays in My Documents too.</p>
+                        </div>
+                        <div class="upload-section-icon">+</div>
+                    </div>
+
+                    <form th:if="${!#lists.isEmpty(otherDocuments)}"
+                          th:action="@{/collections/{id}/documents(id=${collection.id})}"
+                          method="post"
+                          class="upload-form">
+                        <div class="form-group">
+                            <label for="documentToAdd">Document</label>
+                            <select id="documentToAdd" name="documentId" required>
+                                <option value="" selected disabled>Choose a document…</option>
+                                <option th:each="document : ${otherDocuments}"
+                                        th:value="${document.id}"
+                                        th:text="${document.title}">Document title</option>
+                            </select>
+                        </div>
+                        <div class="upload-form-footer">
+                            <span class="upload-hint"></span>
+                            <button type="submit" class="upload-btn"><span>+</span> Add to collection</button>
+                        </div>
+                    </form>
+
+                    <p class="muted padded-text" th:if="${#lists.isEmpty(otherDocuments)}">
+                        All your documents are already in this collection.
+                        <a th:href="@{/documents}">Upload a new document</a>.
+                    </p>
+                </section>
+
+                <!-- Edit name and description -->
+                <section class="upload-section">
+                    <div class="upload-section-header">
+                        <div>
+                            <h2>Details</h2>
+                            <p>Rename the collection or change its description.</p>
+                        </div>
+                        <div class="upload-section-icon">✎</div>
+                    </div>
+
+                    <form th:action="@{/collections/{id}(id=${collection.id})}" method="post" class="upload-form">
+                        <div class="form-group">
+                            <label for="collectionName">Name</label>
+                            <input type="text"
+                                   id="collectionName"
+                                   name="name"
+                                   required
+                                   th:maxlength="${maxName}"
+                                   th:value="${collection.name}">
+                        </div>
+                        <div class="form-group">
+                            <label for="collectionDescription">Description <span class="optional">(optional)</span></label>
+                            <textarea id="collectionDescription"
+                                      name="description"
+                                      rows="2"
+                                      th:maxlength="${maxDescription}"
+                                      th:text="${collection.description}"></textarea>
+                        </div>
+                        <div class="upload-form-footer">
+                            <span class="upload-hint"></span>
+                            <button type="submit" class="upload-btn">Save changes</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <!-- Documents in this collection -->
+            <div class="documents-table-container">
+                <div class="table-heading">
+                    <div>
+                        <h2>Documents in this collection</h2>
+                        <p>Removing a document here does not delete it.</p>
+                    </div>
+                    <span class="document-count"
+                          th:text="${#lists.size(documents)} + (${#lists.size(documents)} == 1 ? ' document' : ' documents')">
+                        0 documents
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="documents-table">
+                        <thead>
+                        <tr>
+                            <th>DOCUMENT</th>
+                            <th>STATUS</th>
+                            <th>UPLOADED</th>
+                            <th class="align-right">ACTIONS</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="document : ${documents}">
+                            <td>
+                                <div class="document-name">
+                                    <span class="document-icon">📄</span>
+                                    <span class="document-title" th:text="${document.title}">Document title</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge"
+                                      th:classappend="${document.status != null ? 'status-' + #strings.toLowerCase(document.status.name()) : ''}"
+                                      th:text="${document.status}">INDEXED</span>
+                            </td>
+                            <td class="document-date"
+                                th:text="${document.uploadedAt != null ? #temporals.format(document.uploadedAt, 'dd/MM/yyyy HH:mm') : '-'}">
+                                01/01/2026
+                            </td>
+                            <td class="align-right">
+                                <form th:action="@{/collections/{cid}/documents/{did}/remove(cid=${collection.id},did=${document.id})}"
+                                      method="post"
+                                      class="inline-form">
+                                    <button type="submit" class="link-button">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <tr th:if="${#lists.isEmpty(documents)}">
+                            <td colspan="4" class="empty-documents">
+                                <div class="empty-state-content">
+                                    <span class="empty-icon">📂</span>
+                                    <h3>This collection is empty</h3>
+                                    <p>Add a document with the form above.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Danger zone -->
+            <section class="danger-zone">
+                <div>
+                    <h2>Delete this collection</h2>
+                    <p>The documents inside it are not deleted.</p>
+                </div>
+                <form th:action="@{/collections/{id}/delete(id=${collection.id})}"
+                      method="post"
+                      onsubmit="return confirm('Delete this collection? Its documents are kept.');">
+                    <button type="submit" class="danger-button">Delete collection</button>
+                </form>
+            </section>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

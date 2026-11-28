@@ -11,19 +11,18 @@
 
     <div class="topbar-right">
 
-        <div class="search-box">
-            <span class="search-icon">⌕</span>
-            <input type="text"
-                   placeholder="Search your workspace..."
-                   disabled>
-            <span class="search-shortcut">⌘ K</span>
-        </div>
-
-        <button type="button"
-                class="notification-button"
-                aria-label="Notifications">
-            ♧
-        </button>
+        <!-- Semantic search over the user's documents (WorkspaceWebController /search) -->
+        <form class="search-box" th:action="@{/search}" method="get" role="search">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input type="search"
+                   id="globalSearch"
+                   name="q"
+                   maxlength="500"
+                   th:value="${query}"
+                   placeholder="Search your documents..."
+                   aria-label="Search your documents">
+            <span class="search-shortcut" aria-hidden="true">⌘ K</span>
+        </form>
 
         <div class="user-profile">
             <div class="user-avatar"
@@ -44,5 +43,19 @@
         </form>
 
     </div>
+
+    <!-- Ctrl+K / ⌘K focuses the search box on every page -->
+    <script>
+        document.addEventListener("keydown", (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+                const search = document.getElementById("globalSearch");
+                if (search) {
+                    event.preventDefault();
+                    search.focus();
+                    search.select();
+                }
+            }
+        });
+    </script>
 
 </header>
