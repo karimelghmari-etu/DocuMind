@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
@@ -6,178 +5,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | Dashboard</title>
+    <title>Dashboard | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
 
 <div class="dashboard-layout">
 
-    <!-- SIDEBAR -->
     <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
-    <!-- MAIN AREA -->
     <main class="main-area">
 
-        <!-- NAVBAR -->
         <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-        <!-- DASHBOARD CONTENT -->
         <section class="dashboard-content">
 
-            <div class="page-heading">
-                <div>
-                    <h1>Welcome to DocuMind 👋</h1>
-                    <p>Here's an overview of your workspace.</p>
+            <!-- The hero: the question box, with questions made from the user's own documents. -->
+            <section class="dashboard-hero">
+                <h1 th:text="'Hello, ' + ${username}">Hello</h1>
+                <p>What do you want to know from your documents?</p>
+
+                <form class="ask-row" th:action="@{/assistant}" method="get">
+                    <label for="dashboardAsk" class="visually-hidden">Your question</label>
+                    <input type="text"
+                           id="dashboardAsk"
+                           name="ask"
+                           maxlength="2000"
+                           placeholder="Ask anything about your courses"
+                           required>
+                    <input type="hidden" name="send" value="1">
+                    <button type="submit" class="btn-primary">Ask</button>
+                </form>
+
+                <div class="suggestions" th:unless="${#lists.isEmpty(suggestions)}">
+                    <a class="suggestion"
+                       th:each="question : ${suggestions}"
+                       th:href="@{/assistant(ask=${question},send=1)}"
+                       th:text="${question}">Summarize “Course”</a>
                 </div>
 
-                <a th:href="@{/documents}" class="dashboard-upload-btn">
-                    <span>+</span>
-                    Upload document
-                </a>
-            </div>
+                <p class="hero-bubble" aria-hidden="true">
+                    Every answer points to the passage it used. <span class="citation">1</span>
+                </p>
+            </section>
 
-            <!-- STATISTICS -->
-            <div class="stats-grid">
-
-                <!-- TOTAL DOCUMENTS -->
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon">▤</div>
-                    </div>
-
-                    <h3 th:text="${stats.totalDocuments}">0</h3>
-                    <p>Total documents</p>
+            <!-- Continue reading: the newest documents as pages, one click to open. -->
+            <section class="workspace-section">
+                <div class="section-heading">
+                    <h2>Continue reading</h2>
+                    <a th:href="@{/documents}" th:text="${#lists.isEmpty(recentDocuments)} ? 'Upload a document' : 'All documents'">All documents</a>
                 </div>
 
-                <!-- COLLECTIONS -->
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon">▧</div>
-                    </div>
-
-                    <h3 th:text="${stats.totalCollections}">0</h3>
-                    <p>Collections</p>
+                <div class="doc-grid" th:unless="${#lists.isEmpty(recentDocuments)}">
+                    <th:block th:each="document, row : ${recentDocuments}" th:if="${row.index < 4}">
+                        <article th:replace="~{fragments/doc-card :: card(${document}, false)}"></article>
+                    </th:block>
                 </div>
 
-                <!-- AI CONVERSATIONS -->
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon">✧</div>
-                    </div>
-
-                    <h3 th:text="${stats.totalConversations}">0</h3>
-                    <p>AI conversations</p>
+                <div class="empty-state panel" th:if="${#lists.isEmpty(recentDocuments)}">
+                    <h3>No documents yet</h3>
+                    <p>Upload a PDF, Word or text file. DocuMind reads it and can then answer questions about it.</p>
                 </div>
+            </section>
 
-                <!-- PROCESSING JOBS -->
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon">◷</div>
-                    </div>
-
-                    <h3 th:text="${stats.totalProcessingJobs}">0</h3>
-                    <p>Processing jobs</p>
-                </div>
-
-            </div>
-
-            <!-- MAIN CONTENT PANELS -->
             <div class="content-grid">
 
-                <!-- RECENT DOCUMENTS -->
-                <div class="content-panel">
-
+                <section class="content-panel">
                     <div class="panel-heading">
-                        <h2>Recent documents</h2>
-                        <a th:href="@{/documents}">View all</a>
+                        <h2>Recent activity</h2>
+                        <a th:href="@{/history}" th:unless="${#lists.isEmpty(activity)}">History</a>
                     </div>
 
-                    <!-- DOCUMENTS AVAILABLE -->
-                    <div th:if="${not #lists.isEmpty(recentDocuments)}"
-                         class="recent-documents-list">
+                    <ol class="activity-feed" th:unless="${#lists.isEmpty(activity)}">
+                        <li th:each="item : ${activity}" th:classappend="'activity-' + ${item.kind}">
+                            <span class="activity-icon" aria-hidden="true"></span>
+                            <a th:href="${item.href}" class="activity-text">
+                                <span class="muted" th:text="${item.kind == 'upload'} ? 'Uploaded' : 'Asked'">Uploaded</span>
+                                <strong th:text="${item.text}">Title</strong>
+                            </a>
+                            <time th:text="${item.when}" th:attr="datetime=${item.at}">2 h ago</time>
+                        </li>
+                    </ol>
 
-                        <div class="recent-document-item"
-                             th:each="document : ${recentDocuments}">
-
-                            <div class="document-info">
-
-                                <div class="document-icon">
-                                    ▤
-                                </div>
-
-                                <div class="document-details">
-                                    <h3 th:text="${document.title}">
-                                        Document title
-                                    </h3>
-
-                                    <p th:text="${#temporals.format(document.uploadedAt, 'dd MMM yyyy')}">
-                                        25 Nov 2026
-                                    </p>
-                                </div>
-
-                            </div>
-
-                            <span class="document-status"
-                                  th:text="${document.status}"
-                                  th:classappend="' status-' + ${#strings.toLowerCase(document.status.name())}">
-                PENDING
-            </span>
-
-                        </div>
-
+                    <div th:if="${#lists.isEmpty(activity)}" class="empty-state compact">
+                        <h3>Nothing yet</h3>
+                        <p>Uploads and questions appear here.</p>
                     </div>
+                </section>
 
-                    <!-- EMPTY STATE -->
-                    <div th:if="${#lists.isEmpty(recentDocuments)}"
-                         class="empty-state">
-
-                        <div class="empty-state-icon">
-                            ▤
-                        </div>
-
-                        <h3>No documents yet</h3>
-
-                        <p>
-                            Upload your first document to start
-                            exploring your knowledge with AI.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <!-- AI ASSISTANT -->
-                <div class="content-panel">
-
+                <section class="content-panel">
                     <div class="panel-heading">
-                        <h2>AI Assistant</h2>
+                        <h2>Your workspace</h2>
                     </div>
 
-                    <div class="empty-state">
-
-                        <div class="empty-state-icon">
-                            ✧
-                        </div>
-
-                        <h3>Your AI workspace is ready</h3>
-
-                        <p>
-                            Start by uploading documents.
-                            Then you can ask questions and get
-                            answers based on your own content.
-                        </p>
-                        <a th:href="@{/assistant}" class="assistant-link">
-                            Open AI Assistant →
-                        </a>
-
+                    <div class="mini-stats">
+                        <a th:href="@{/documents}"><strong th:text="${stats.totalDocuments}">0</strong><span th:text="${stats.totalDocuments == 1} ? 'document' : 'documents'">documents</span></a>
+                        <a th:href="@{/collections}"><strong th:text="${stats.totalCollections}">0</strong><span th:text="${stats.totalCollections == 1} ? 'collection' : 'collections'">collections</span></a>
+                        <a th:href="@{/history}"><strong th:text="${stats.totalConversations}">0</strong><span th:text="${stats.totalConversations == 1} ? 'conversation' : 'conversations'">conversations</span></a>
                     </div>
 
-                </div>
+                    <h3 class="panel-subheading" th:unless="${#lists.isEmpty(sidebarCollections)}">Collections</h3>
+                    <ul class="collection-list" th:unless="${#lists.isEmpty(sidebarCollections)}">
+                        <li th:each="collection : ${sidebarCollections}">
+                            <a th:href="@{/collections/{id}(id=${collection.id})}">
+                                <span th:text="${collection.name}">Collection</span>
+                                <span class="muted" th:text="${collection.documentCount} + (${collection.documentCount} == 1 ? ' document' : ' documents')">0 documents</span>
+                            </a>
+                        </li>
+                    </ul>
+                    <a class="link-button" th:href="@{/collections}" th:if="${#lists.isEmpty(sidebarCollections)}">Create a collection</a>
+                </section>
 
             </div>
 

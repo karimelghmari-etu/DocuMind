@@ -145,9 +145,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 `/assistant/conversations/${conversationId}`
             );
 
-            displayMessages(conversation.messages || []);
+            // Show the list first: a hidden list has no height, so it could not scroll to the last message.
             chatEmptyState.style.display = "none";
             messagesContainer.style.display = "flex";
+            displayMessages(conversation.messages || []);
 
             await loadConversations();
 
@@ -169,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const role = document.createElement("div");
             role.className = "message-role";
             role.textContent =
-                message.role === "USER" ? "You" : "DocuMind AI";
+                message.role === "USER" ? "You" : "DocuMind";
 
             const content = document.createElement("div");
             content.className = "message-content";
@@ -196,18 +197,39 @@ document.addEventListener("DOMContentLoaded", () => {
                     sourceElement.className = "source-item";
                     sourceElement.id = sourceElementId(message.id, source.number);
 
+                    // Same number chip as the citation in the answer, so the two are easy to match.
                     const summary = document.createElement("summary");
-                    summary.textContent =
-                        `[${source.number}] ${source.documentTitle} — Chunk ${source.chunkIndex}`;
+
+                    const number = document.createElement("span");
+                    number.className = "source-number";
+                    number.textContent = String(source.number);
+
+                    const title = document.createElement("span");
+                    title.className = "source-title";
+                    title.textContent = source.documentTitle;
+
+                    const passage = document.createElement("span");
+                    passage.className = "source-passage";
+                    passage.textContent = `Passage ${source.chunkIndex + 1}`;
+
+                    summary.append(number, title, passage);
 
                     const sourceContent = document.createElement("p");
                     sourceContent.textContent = source.content;
 
-                    const score = document.createElement("small");
-                    score.textContent =
-                        `Relevance score: ${Number(source.score).toFixed(3)}`;
+                    const footer = document.createElement("div");
+                    footer.className = "source-footer";
 
-                    sourceElement.append(summary, sourceContent, score);
+                    const score = document.createElement("small");
+                    score.textContent = `${Math.round(Number(source.score) * 100)}% match`;
+
+                    const open = document.createElement("a");
+                    open.className = "link-button";
+                    open.href = `/documents/${encodeURIComponent(source.documentId)}`;
+                    open.textContent = "Open document";
+
+                    footer.append(score, open);
+                    sourceElement.append(summary, sourceContent, footer);
                     sourcesContainer.appendChild(sourceElement);
                 });
 
@@ -276,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             loading = document.createElement("article");
             loading.className = "message message-assistant loading-message";
-            loading.textContent = "DocuMind is thinking...";
+            loading.textContent = "Reading your documents…";
             messagesContainer.appendChild(loading);
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -377,10 +399,25 @@ document.addEventListener("DOMContentLoaded", () => {
         messageInput.focus();
     }
 
+    // Suggested questions in the empty chat: a click asks it.
+    document.querySelectorAll(".chat-suggestions .suggestion").forEach((button) => {
+        button.addEventListener("click", () => {
+            messageInput.value = button.dataset.question;
+            chatForm.requestSubmit();
+        });
+    });
+
     if (Number.isInteger(conversationParam) && conversationParam > 0) {
         selectConversation(conversationParam);
     } else {
         loadConversations();
+    }
+
+    // From the dashboard (?ask=...&send=1): the person already pressed Ask, so send it now.
+    // The URL is cleaned first, so reloading the page does not send the question twice.
+    if (askParam && params.get("send") === "1") {
+        window.history.replaceState(null, "", window.location.pathname);
+        chatForm.requestSubmit();
     }
 });
 
@@ -408,11 +445,12 @@ function renderWithCitations(container, text, sourceNumbers, messageId) {
         }
 
         container.append(document.createTextNode(text.slice(last, match.index)));
-        container.append(document.createTextNode("["));
 
-        numbers.forEach((number, i) => {
-            if (i > 0) container.append(document.createTextNode(", "));
+        // "[1, 3]" becomes two chips side by side; the chip replaces the brackets.
+        const group = document.createElement("span");
+        group.className = "citation-group";
 
+        numbers.forEach((number) => {
             if (sourceNumbers.has(number)) {
                 const button = document.createElement("button");
                 button.type = "button";
@@ -420,13 +458,12 @@ function renderWithCitations(container, text, sourceNumbers, messageId) {
                 button.textContent = String(number);
                 button.title = `Show source ${number}`;
                 button.addEventListener("click", () => openSource(messageId, number));
-                container.append(button);
-            } else {
-                container.append(document.createTextNode(String(number)));
+                group.append(button);
             }
+            // A number without a source (invented by the LLM) is left out of the group.
         });
 
-        container.append(document.createTextNode("]"));
+        container.append(group);
         last = match.index + match[0].length;
     }
 

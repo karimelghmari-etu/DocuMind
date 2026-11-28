@@ -46,6 +46,28 @@ function setUpFileInput() {
         }
     });
 
+    // Drag and drop a file onto the picker: same as choosing it with "Browse files".
+    const dropArea = form.querySelector(".file-drop-area");
+    if (dropArea) {
+        ["dragenter", "dragover"].forEach((type) => dropArea.addEventListener(type, (event) => {
+            event.preventDefault();
+            dropArea.classList.add("dragging");
+        }));
+        ["dragleave", "dragend", "drop"].forEach((type) => dropArea.addEventListener(type, () => {
+            dropArea.classList.remove("dragging");
+        }));
+        dropArea.addEventListener("drop", (event) => {
+            event.preventDefault();
+            const dropped = event.dataTransfer?.files;
+            if (!dropped || dropped.length === 0) return;
+
+            const one = new DataTransfer();     // the form uploads one file at a time
+            one.items.add(dropped[0]);
+            fileInput.files = one.files;
+            fileInput.dispatchEvent(new Event("change"));
+        });
+    }
+
     form.addEventListener("submit", (event) => {
         const file = fileInput.files[0];
 
@@ -92,7 +114,7 @@ async function pollStatus(badge) {
         });
 
         if (response.status === 404) {
-            badge.closest("tr")?.remove();   // deleted meanwhile (e.g. in another tab)
+            badge.closest(".doc-card, tr")?.remove();   // deleted meanwhile (e.g. in another tab)
             return;
         }
         if (!response.ok) {
@@ -125,5 +147,5 @@ function updateBadge(badge, status) {
     badge.classList.remove(`status-${badge.dataset.status.toLowerCase()}`);
     badge.classList.add(`status-${status.toLowerCase()}`);
     badge.dataset.status = status;
-    badge.textContent = status;
+    badge.textContent = status.charAt(0) + status.slice(1).toLowerCase();   // "INDEXED" -> "Indexed", like the template
 }

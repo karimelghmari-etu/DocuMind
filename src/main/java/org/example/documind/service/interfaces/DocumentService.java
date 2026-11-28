@@ -1,5 +1,8 @@
 package org.example.documind.service.interfaces;
 
+import org.example.documind.dto.document.DocumentDetailDTO;
+import org.example.documind.dto.document.StoredFile;
+
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.dto.document.DocumentDTO;
 import org.example.documind.dto.document.DocumentStatusDTO;
@@ -18,4 +21,10 @@ public interface DocumentService {
     DocumentStatusDTO getDocumentStatus(Long documentId, Long ownerId);
     void reprocessDocument(Long documentId, Long ownerId);
     List<DocumentDTO> getRecentDocuments(Long ownerId);
+
+    /** The document page: details, collections and indexed passages. */
+    DocumentDetailDTO getDocumentDetail(Long documentId, Long ownerId);
+
+    /** The uploaded file itself, for viewing, printing or downloading. */
+    StoredFile getDocumentFile(Long documentId, Long ownerId);
 }

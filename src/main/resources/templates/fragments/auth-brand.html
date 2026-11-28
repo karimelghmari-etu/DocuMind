@@ -1,0 +1,41 @@
+<!-- Left half of the login and register pages.
+     No slogan block: a picture of what DocuMind does. A page of a course document with one
+     passage highlighted, and the answer that cites it, joined by the same number chip.
+     The grey bars stand for the rest of the page; only the cited sentence is real text. -->
+<section class="auth-brand" th:fragment="brand" aria-label="DocuMind">
+
+    <div class="brand-logo">
+        <div class="brand-icon" aria-hidden="true">D</div>
+        <span>DocuMind</span>
+    </div>
+
+    <div class="brand-scene" aria-hidden="true">
+
+        <div class="scene-page">
+            <div class="scene-page-head">
+                <span>Réseaux de neurones</span>
+                <span>page 4</span>
+            </div>
+            <span class="scene-line w-90"></span>
+            <span class="scene-line w-75"></span>
+            <span class="scene-line w-85"></span>
+
+            <p class="scene-passage">
+                <span class="source-number">1</span>
+                <mark>Le perceptron simple est constitué d'une seule couche de neurones de sortie, chacun relié à toutes les entrées.</mark>
+            </p>
+
+            <span class="scene-line w-80"></span>
+            <span class="scene-line w-60"></span>
+            <span class="scene-line w-70"></span>
+        </div>
+
+        <div class="scene-answer">
+            <p>A simple perceptron has one layer of output neurons, each connected to every input. <span class="citation">1</span></p>
+        </div>
+
+    </div>
+
+    <p class="brand-line">Answers from your documents, with the passage to prove it.</p>
+
+</section>

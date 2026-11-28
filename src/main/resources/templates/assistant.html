@@ -5,14 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | AI Assistant</title>
+    <title>Assistant | DocuMind</title>
 
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/assistant.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <script th:src="@{/js/assistant.js}"></script>
 
@@ -34,14 +33,11 @@
             <!-- Assistant header -->
             <div class="assistant-heading">
                 <div>
-                    <h1>AI Assistant</h1>
-                    <p>Chat with your documents and get intelligent answers.</p>
+                    <h1>Assistant</h1>
+                    <p>Answers come from your documents, with numbered sources you can open.</p>
                 </div>
 
-                <button id="newConversationBtn" class="new-chat-btn">
-                    <span>＋</span>
-                    New conversation
-                </button>
+                <button id="newConversationBtn" class="new-chat-btn" type="button">New conversation</button>
             </div>
 
             <!-- Main assistant layout -->
@@ -73,14 +69,19 @@
                     <!-- Empty state -->
                     <div id="chatEmptyState" class="chat-empty-state">
 
-                        <div class="assistant-icon">✧</div>
-
-                        <h2>How can I help you?</h2>
+                        <h2>Ask about your documents</h2>
 
                         <p>
-                            Ask questions about your uploaded documents
-                            and let DocuMind find the answers.
+                            Type a question below. Each answer lists the passages it used; click a number to read one.
                         </p>
+
+                        <div class="chat-suggestions" th:unless="${#lists.isEmpty(suggestions)}">
+                            <button type="button"
+                                    class="suggestion"
+                                    th:each="question : ${suggestions}"
+                                    th:attr="data-question=${question}"
+                                    th:text="${question}">Summarize “Course”</button>
+                        </div>
 
                     </div>
 
@@ -103,9 +104,7 @@
 
                     </form>
 
-                    <p class="chat-disclaimer">
-                        DocuMind can make mistakes. Verify important information.
-                    </p>
+                    <p class="chat-disclaimer">Answers can be wrong. Check the sources for anything important.</p>
 
                 </section>
 

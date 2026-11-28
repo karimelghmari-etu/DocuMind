@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.documind.dto.chat.*;
 import org.example.documind.security.CustomUserDetails;
 import org.example.documind.service.interfaces.ConversationService;
+import org.example.documind.service.interfaces.DocumentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -19,6 +20,7 @@ import java.util.List;
 public class AssistantWebController {
 
     private final ConversationService conversationService;
+    private final DocumentService documentService;
 
     // Display the AI Assistant page
     @GetMapping
@@ -34,7 +36,9 @@ public class AssistantWebController {
                 username.substring(0, 1).toUpperCase()
         );
         model.addAttribute("activePage", "assistant");
-        model.addAttribute("currentPage", "AI Assistant");
+        model.addAttribute("currentPage", "Assistant");
+        model.addAttribute("suggestions",
+                QuestionSuggestions.from(documentService.getDocumentsByOwnerId(userDetails.getId())));
 
         return "assistant";
     }

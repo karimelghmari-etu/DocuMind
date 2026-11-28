@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${document.title} + ' | DocuMind'">Document | DocuMind</title>
+
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-area">
+
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+        <section class="documents-page document-view"
+                 th:with="fileUrl=@{/documents/{id}/file(id=${document.id})},
+                          downloadUrl=@{/documents/{id}/file(id=${document.id},download=true)},
+                          sizeText=${document.fileSize < 1048576
+                                    ? #numbers.formatDecimal(document.fileSize / 1024.0, 1, 0) + ' KB'
+                                    : #numbers.formatDecimal(document.fileSize / 1048576.0, 1, 1) + ' MB'}">
+
+            <a class="back-link" th:href="@{/documents}">← Documents</a>
+
+            <th:block th:replace="~{fragments/flash :: flash}"></th:block>
+
+            <!-- Title, file details and actions -->
+            <header class="doc-header">
+                <div class="doc-thumb large" th:attr="data-type=${document.typeLabel()}" aria-hidden="true">
+                    <span class="doc-type" th:text="${document.typeLabel()}">PDF</span>
+                </div>
+
+                <div class="doc-header-text">
+                    <h1 th:text="${document.title}">Document title</h1>
+
+                    <div class="doc-meta">
+                        <span th:text="${document.filename}">file.pdf</span>
+                        <span th:text="${sizeText}">1.2 MB</span>
+                        <span th:if="${document.uploadedAt != null}"
+                              th:text="'Uploaded ' + ${#temporals.format(document.uploadedAt, 'd MMM yyyy, HH:mm')}">Uploaded</span>
+                        <span class="status-badge"
+                              th:if="${document.status != null}"
+                              th:classappend="'status-' + ${#strings.toLowerCase(document.status.name())}"
+                              th:text="${#strings.capitalize(#strings.toLowerCase(document.status.name()))}">Indexed</span>
+                    </div>
+
+                    <div class="doc-collections" th:unless="${#lists.isEmpty(document.collections)}">
+                        <span class="muted">In</span>
+                        <a class="tag"
+                           th:each="collection : ${document.collections}"
+                           th:href="@{/collections/{id}(id=${collection.id})}"
+                           th:text="${collection.name}">Collection</a>
+                    </div>
+                </div>
+
+                <div class="doc-actions">
+                    <a class="btn-primary" th:href="${downloadUrl}">Download</a>
+                    <button type="button" class="ghost-button" id="printDocument"
+                            th:attr="data-file-url=${fileUrl},data-viewable=${document.viewableInBrowser()}">Print</button>
+                    <a class="ghost-button" th:if="${document.viewableInBrowser()}"
+                       th:href="${fileUrl}" target="_blank" rel="noopener">Open in new tab</a>
+                </div>
+            </header>
+
+            <div class="doc-layout">
+
+                <!-- The file itself: the browser's own viewer for PDF and text, our reader for Word files. -->
+                <div class="doc-viewer">
+                    <iframe th:if="${document.viewableInBrowser()}"
+                            id="documentFrame"
+                            th:src="${fileUrl}"
+                            th:title="${document.title}"></iframe>
+
+                    <article class="doc-reader" id="documentReader" th:unless="${document.viewableInBrowser()}">
+                        <p class="doc-reader-note">
+                            Browsers can't display Word files, so this is the text DocuMind read from it.
+                            Download the file to see its original layout.
+                        </p>
+                        <h2 th:text="${document.title}">Title</h2>
+                        <p class="doc-reader-text"
+                           th:each="passage : ${document.passages}"
+                           th:text="${passage.content}">Passage</p>
+                        <p class="muted" th:if="${#lists.isEmpty(document.passages)}">
+                            The text is not ready yet. It appears here once the status says Indexed.
+                        </p>
+                    </article>
+                </div>
+
+                <!-- Side panel: ask about it, and what DocuMind indexed. -->
+                <aside class="doc-side">
+                    <section class="side-card">
+                        <h2>Ask about this document</h2>
+                        <form th:action="@{/assistant}" method="get" class="side-ask">
+                            <label class="visually-hidden" for="askDocument">Your question</label>
+                            <textarea id="askDocument" name="ask" rows="3" maxlength="2000" required
+                                      th:placeholder="'For example: what are the main ideas in ' + ${document.title} + '?'"></textarea>
+                            <input type="hidden" name="send" value="1">
+                            <button type="submit" class="btn-primary">Ask</button>
+                        </form>
+                        <div class="suggestions stacked">
+                            <a class="suggestion"
+                               th:href="@{/assistant(ask=${'Summarize “' + document.title + '”'},send=1)}"
+                               th:text="'Summarize “' + ${document.title} + '”'">Summarize</a>
+                            <a class="suggestion"
+                               th:href="@{/assistant(ask=${'What are the key ideas in “' + document.title + '”?'},send=1)}">Key ideas</a>
+                        </div>
+                    </section>
+
+                    <section class="side-card">
+                        <h2>Indexed passages</h2>
+                        <p class="side-figure">
+                            <strong th:text="${#lists.size(document.passages)}">0</strong>
+                            <span th:text="${#lists.size(document.passages) == 1} ? 'passage the assistant can cite' : 'passages the assistant can cite'">passages</span>
+                        </p>
+                        <ol class="passage-list" th:unless="${#lists.isEmpty(document.passages)}">
+                            <li th:each="passage, row : ${document.passages}" th:if="${row.index < 4}">
+                                <span class="source-number" th:text="${passage.index + 1}">1</span>
+                                <span class="passage-preview"
+                                      th:text="${#strings.abbreviate(passage.content, 110)}">Passage text</span>
+                            </li>
+                        </ol>
+                    </section>
+                </aside>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script th:src="@{/js/document.js}"></script>
+
+</body>
+</html>

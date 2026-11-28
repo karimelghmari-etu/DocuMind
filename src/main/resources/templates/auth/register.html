@@ -6,9 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | Create Account</title>
+    <title>Create account | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
     <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
 
@@ -16,44 +16,18 @@
 
 <div class="auth-page">
 
-    <!-- LEFT BRAND PANEL -->
-    <section class="auth-brand">
-
-        <div class="brand-logo">
-            <div class="brand-icon">D</div>
-            <span>DocuMind</span>
-        </div>
-
-        <div class="brand-content">
-
-            <h1>
-                Turn your documents<br>
-                into <span class="brand-highlight">knowledge.</span>
-            </h1>
-
-            <p>
-                Create your personal workspace and let
-                artificial intelligence help you understand,
-                organize and explore your documents.
-            </p>
-
-        </div>
-
-        <div class="brand-footer">
-            © 2026 DocuMind. All rights reserved.
-        </div>
-
-    </section>
+    <section th:replace="~{fragments/auth-brand :: brand}"></section>
 
 
     <!-- RIGHT REGISTER FORM -->
     <main class="auth-main">
 
+        <div class="auth-theme"><button th:replace="~{fragments/head :: theme-toggle}"></button></div>
+
         <div class="auth-container">
 
             <div class="auth-heading">
-                <h2>Create your account</h2>
-                <p>Get started with your intelligent workspace.</p>
+                <h2>Create an account</h2>
             </div>
 
             <form class="auth-form"
@@ -141,7 +115,7 @@
 
 
                 <button type="submit" class="btn btn-primary">
-                    Create account →
+                    Create account
                 </button>
 
             </form>

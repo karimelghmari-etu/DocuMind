@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.example.documind.web.exception.UsernameAlreadyExistsException;
 import org.example.documind.web.exception.EmailAlreadyExistsException;
 import org.example.documind.security.CustomUserDetails;
+import org.example.documind.service.interfaces.ConversationService;
 import org.example.documind.service.interfaces.DashboardService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
@@ -20,13 +21,16 @@ public class PageController {
 
     private final AuthService authService;
     private final DashboardService dashboardService;
+    private final ConversationService conversationService;
 
     public PageController(
             AuthService authService,
-            DashboardService dashboardService) {
+            DashboardService dashboardService,
+            ConversationService conversationService) {
 
         this.authService = authService;
         this.dashboardService = dashboardService;
+        this.conversationService = conversationService;
     }
 
     @GetMapping("/login")
@@ -95,6 +99,20 @@ public class PageController {
         model.addAttribute(
                 "recentDocuments",
                 dashboardService.getRecentDocuments(userId)
+        );
+        model.addAttribute(
+                "suggestions",
+                QuestionSuggestions.from(dashboardService.getRecentDocuments(userId))
+        );
+        // Newest first already; the dashboard shows five.
+        var conversations = conversationService.getConversations(userId);
+        model.addAttribute(
+                "recentConversations",
+                conversations.stream().limit(5).toList()
+        );
+        model.addAttribute(
+                "activity",
+                Activity.from(dashboardService.getRecentDocuments(userId), conversations, java.time.LocalDateTime.now())
         );
         model.addAttribute("currentPage", "Dashboard");
 

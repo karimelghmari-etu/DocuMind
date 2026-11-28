@@ -3,21 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuMind | File too large</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <style>
-        .too-large-page {
-            max-width: 520px;
-            margin: 12vh auto;
-            padding: 0 16px;
-            text-align: center;
-        }
-        .too-large-page a {
-            display: inline-block;
-            margin-top: 8px;
-        }
-    </style>
+    <title>File too large | DocuMind</title>
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 <!--
@@ -30,7 +18,7 @@
     <p class="error-message" role="alert">
         The file exceeds the maximum upload size. Please choose a smaller file.
     </p>
-    <a th:href="@{/documents}">← Back to My Documents</a>
+    <a th:href="@{/documents}">Back to Documents</a>
 </main>
 </body>
 </html>

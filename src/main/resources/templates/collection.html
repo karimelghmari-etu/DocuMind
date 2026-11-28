@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title th:text="'DocuMind | ' + ${collection.name}">DocuMind | Collection</title>
+    <title th:text="${collection.name} + ' | DocuMind'">Collection | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
@@ -32,13 +30,20 @@
             <!-- Page heading -->
             <div class="documents-heading">
                 <div>
-                    <span class="page-eyebrow">COLLECTION</span>
                     <h1 th:text="${collection.name}">Collection name</h1>
                     <p th:text="${collection.description != null ? collection.description : 'No description yet.'}">
                         Description
                     </p>
+
+                    <div class="page-facts">
+                        <span class="fact">
+                            <strong th:text="${#lists.size(documents)}">0</strong>
+                            <th:block th:text="${#lists.size(documents) == 1} ? 'document' : 'documents'">documents</th:block>
+                        </span>
+                        <span class="fact" th:if="${collection.createdAt != null}"
+                              th:text="'Created ' + ${#temporals.format(collection.createdAt, 'd MMM yyyy')}">Created</span>
+                    </div>
                 </div>
-                <div class="documents-heading-icon">▧</div>
             </div>
 
             <div class="two-columns">
@@ -48,9 +53,8 @@
                     <div class="upload-section-header">
                         <div>
                             <h2>Add a document</h2>
-                            <p>Choose one of your documents. It stays in My Documents too.</p>
+                            <p>Choose one of your documents. It also stays in Documents.</p>
                         </div>
-                        <div class="upload-section-icon">+</div>
                     </div>
 
                     <form th:if="${!#lists.isEmpty(otherDocuments)}"
@@ -68,7 +72,7 @@
                         </div>
                         <div class="upload-form-footer">
                             <span class="upload-hint"></span>
-                            <button type="submit" class="upload-btn"><span>+</span> Add to collection</button>
+                            <button type="submit" class="upload-btn">Add to collection</button>
                         </div>
                     </form>
 
@@ -85,7 +89,6 @@
                             <h2>Details</h2>
                             <p>Rename the collection or change its description.</p>
                         </div>
-                        <div class="upload-section-icon">✎</div>
                     </div>
 
                     <form th:action="@{/collections/{id}(id=${collection.id})}" method="post" class="upload-form">
@@ -131,24 +134,24 @@
                     <table class="documents-table">
                         <thead>
                         <tr>
-                            <th>DOCUMENT</th>
-                            <th>STATUS</th>
-                            <th>UPLOADED</th>
-                            <th class="align-right">ACTIONS</th>
+                            <th>Document</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                            <th class="align-right"><span class="visually-hidden">Actions</span></th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="document : ${documents}">
                             <td>
-                                <div class="document-name">
-                                    <span class="document-icon">📄</span>
+                                <a class="document-name plain-link" th:href="@{/documents/{id}(id=${document.id})}">
+                                    <span class="document-icon" aria-hidden="true"></span>
                                     <span class="document-title" th:text="${document.title}">Document title</span>
-                                </div>
+                                </a>
                             </td>
                             <td>
                                 <span class="status-badge"
                                       th:classappend="${document.status != null ? 'status-' + #strings.toLowerCase(document.status.name()) : ''}"
-                                      th:text="${document.status}">INDEXED</span>
+                                      th:text="${#strings.capitalize(#strings.toLowerCase(document.status.name()))}">INDEXED</span>
                             </td>
                             <td class="document-date"
                                 th:text="${document.uploadedAt != null ? #temporals.format(document.uploadedAt, 'dd/MM/yyyy HH:mm') : '-'}">
@@ -166,7 +169,6 @@
                         <tr th:if="${#lists.isEmpty(documents)}">
                             <td colspan="4" class="empty-documents">
                                 <div class="empty-state-content">
-                                    <span class="empty-icon">📂</span>
                                     <h3>This collection is empty</h3>
                                     <p>Add a document with the form above.</p>
                                 </div>

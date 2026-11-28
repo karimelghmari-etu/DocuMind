@@ -10,6 +10,9 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -70,5 +73,18 @@ public class FileStorageServiceImpl implements FileStorageService {
         } catch (IOException e) {
             throw new FileStorageException("Failed to delete file.", e);
         }
+    }
+
+    @Override
+    public Resource load(String path) {
+        Path targetPath = Paths.get(path).toAbsolutePath().normalize();
+
+        if (!targetPath.startsWith(rootLocation)) {
+            throw new FileStorageException("Cannot read file outside current directory.");
+        }
+        if (!Files.isRegularFile(targetPath) || !Files.isReadable(targetPath)) {
+            throw new FileStorageException("Stored file is missing.");
+        }
+        return new FileSystemResource(targetPath);
     }
 }

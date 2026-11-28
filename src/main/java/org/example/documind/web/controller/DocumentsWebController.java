@@ -3,7 +3,9 @@ package org.example.documind.web.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.documind.dto.document.DocumentDetailDTO;
 import org.example.documind.dto.document.DocumentStatusDTO;
+import org.example.documind.dto.document.StoredFile;
 import org.example.documind.dto.document.DocumentUploadDTO;
 import org.example.documind.security.CustomUserDetails;
 import org.example.documind.service.interfaces.DocumentService;
@@ -12,7 +14,11 @@ import org.example.documind.web.exception.FileStorageException;
 import org.example.documind.web.exception.InvalidDocumentStateException;
 import org.example.documind.web.exception.InvalidFileException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +27,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -58,7 +65,7 @@ public class DocumentsWebController {
                 "documents",
                 documentService.getDocumentsByOwnerId(userId)
         );
-        model.addAttribute("currentPage", "My Documents");
+        model.addAttribute("currentPage", "Documents");
         model.addAttribute("maxFileSize", maxFileSize);
 
         return "documents";
@@ -158,6 +165,72 @@ public class DocumentsWebController {
         }
 
         return "redirect:/documents";
+    }
+
+    // ---------------------------------------------------------------- open, read, print, download
+
+    /** Types the browser may show inline. Anything else is always downloaded. */
+    private static final java.util.Set<String> INLINE_TYPES = java.util.Set.of("application/pdf", "text/plain");
+
+    @GetMapping("/documents/{documentId}")
+    public String documentPage(
+            @PathVariable Long documentId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+
+        DocumentDetailDTO document;
+        try {
+            document = documentService.getDocumentDetail(documentId, userDetails.getId());
+        } catch (DocumentNotFoundException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "This document no longer exists.");
+            return "redirect:/documents";
+        }
+
+        String username = userDetails.getUsername();
+        model.addAttribute("username", username);
+        model.addAttribute("avatarInitial", username.substring(0, 1).toUpperCase());
+        model.addAttribute("activePage", "documents");
+        model.addAttribute("currentPage", document.title());
+        model.addAttribute("document", document);
+        return "document";
+    }
+
+    /**
+     * The uploaded file. Shown in the browser (PDF, text) so it can be read and printed,
+     * or downloaded with ?download=true. Only the owner can get it: anyone else gets 404.
+     */
+    @GetMapping("/documents/{documentId}/file")
+    public ResponseEntity<Resource> documentFile(
+            @PathVariable Long documentId,
+            @RequestParam(defaultValue = "false") boolean download,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        StoredFile file = documentService.getDocumentFile(documentId, userDetails.getId());
+
+        boolean inline = !download && file.contentType() != null && INLINE_TYPES.contains(file.contentType());
+        MediaType type = mediaTypeOrBinary(file.contentType());
+        if ("text/plain".equals(file.contentType())) {
+            type = new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        ContentDisposition disposition = (inline ? ContentDisposition.inline() : ContentDisposition.attachment())
+                .filename(file.filename() == null ? "document" : file.filename(), java.nio.charset.StandardCharsets.UTF_8)
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(file.resource());
+    }
+
+    private static MediaType mediaTypeOrBinary(String contentType) {
+        try {
+            return contentType == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(contentType);
+        } catch (org.springframework.util.InvalidMimeTypeException e) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 
     /**

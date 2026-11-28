@@ -1,230 +1,288 @@
-
-/* ========================================
-   DOCUMIND - AUTHENTICATION DESIGN
-   ======================================== */
+/* =========================================================
+   Login and register.
+   Left: one picture of what DocuMind does (a document page with the cited
+   passage highlighted, and the answer that cites it) and one line of text.
+   Right: the form, nothing else.
+   ========================================================= */
 
 .auth-page {
-    min-height: 100vh;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    background: var(--surface);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    min-height: 100vh;
 }
 
-/* LEFT PANEL */
+/* ---------------------------------------------------------- left: the picture */
 
 .auth-brand {
     position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 24px;
+    padding: 32px clamp(32px, 5vw, 72px) 40px;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 55px;
-    color: white;
-    background: linear-gradient(145deg, #111827, #242052 65%, #4438A8);
-}
-
-.auth-brand::before,
-.auth-brand::after {
-    content: "";
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.auth-brand::before {
-    width: 420px;
-    height: 420px;
-    right: -160px;
-    top: 10%;
-    background: rgba(108, 99, 255, 0.20);
-    filter: blur(2px);
-}
-
-.auth-brand::after {
-    width: 300px;
-    height: 300px;
-    left: -120px;
-    bottom: -100px;
-    background: rgba(139, 92, 246, 0.18);
-}
-
-.brand-content,
-.brand-footer,
-.brand-logo {
-    position: relative;
-    z-index: 1;
+    background: var(--accent-soft);
+    border-right: 1px solid var(--line);
 }
 
 .brand-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.7px;
+    gap: 10px;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .brand-icon {
-    width: 42px;
-    height: 42px;
     display: grid;
     place-items: center;
-    border-radius: 13px;
-    background: var(--primary);
-    font-size: 21px;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 13px;
+    font-weight: 700;
 }
 
-.brand-content {
-    max-width: 480px;
+.brand-scene {
+    position: relative;
+    align-self: center;
+    justify-self: center;
+    width: min(100%, 470px);
+    padding-bottom: 64px;
 }
 
-.brand-content h1 {
-    font-size: clamp(32px, 4vw, 48px);
-    line-height: 1.2;
-    letter-spacing: -1.8px;
-    margin-bottom: 22px;
+/* A page of a course document. */
+.scene-page {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    padding: 26px 30px 30px 54px;   /* wide left margin holds the source number */
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    box-shadow: 0 1px 0 var(--line), 0 24px 48px -24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.brand-content p {
-    color: #C7C5E8;
-    font-size: 16px;
-    line-height: 1.8;
+.scene-page-head {
+    display: flex;
+    margin-left: -24px;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--font-text);
+    font-size: 13px;
+    font-style: italic;
 }
 
-.brand-highlight {
-    color: #A9A3FF;
+.scene-line {
+    display: block;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--surface-2);
 }
 
-.brand-footer {
-    color: #AAA8CB;
-    font-size: 12px;
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+.w-75 { width: 75%; }
+.w-80 { width: 80%; }
+.w-85 { width: 85%; }
+.w-90 { width: 90%; }
+
+/* The one real sentence on the page: the passage the answer cites. */
+.scene-passage {
+    position: relative;
+    margin: 6px 0;
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink);
 }
 
+.scene-passage .source-number {
+    position: absolute;
+    left: -34px;
+    top: 4px;
+}
 
-/* RIGHT PANEL */
+.scene-passage mark {
+    padding: 1px 2px;
+    color: inherit;
+    background-image: linear-gradient(color-mix(in srgb, var(--accent) 22%, transparent),
+                                      color-mix(in srgb, var(--accent) 22%, transparent));
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+/* The answer that cites it, overlapping the bottom of the page. */
+.scene-answer {
+    position: absolute;
+    right: -18px;
+    bottom: 0;
+    width: min(86%, 380px);
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l) var(--radius-l) 4px var(--radius-l);
+    background: var(--surface);
+    box-shadow: var(--overlay-shadow);
+}
+
+.scene-answer p {
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.55;
+}
+
+.brand-line {
+    max-width: 30ch;
+    color: var(--ink);
+    font-size: clamp(20px, 2vw, 26px);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+}
+
+/* One moment on load: the passage is highlighted, then the answer that cites it appears. */
+@media (prefers-reduced-motion: no-preference) {
+    .scene-passage mark {
+        animation: highlight 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) 0.35s both;
+    }
+
+    .scene-passage .source-number {
+        animation: appear 0.4s ease-out 1.1s both;
+    }
+
+    .scene-answer {
+        animation: rise 0.6s cubic-bezier(0.3, 0.7, 0.2, 1) 1.25s both;
+    }
+}
+
+@keyframes highlight {
+    from { background-size: 0% 100%; }
+    to   { background-size: 100% 100%; }
+}
+
+@keyframes appear {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------------------- right: the form */
 
 .auth-main {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 45px 30px;
-    background: #FFFFFF;
+    padding: 48px 24px;
+}
+
+.auth-theme {
+    position: absolute;
+    top: 20px;
+    right: 20px;
 }
 
 .auth-container {
     width: 100%;
-    max-width: 420px;
+    max-width: 340px;
 }
 
 .auth-heading {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 }
 
 .auth-heading h2 {
-    font-size: 30px;
-    letter-spacing: -1px;
-    margin-bottom: 9px;
-    color: var(--navy);
+    font-size: 28px;
+    font-weight: 650;
+    letter-spacing: -0.025em;
 }
 
 .auth-heading p {
-    color: var(--text-secondary);
-    font-size: 14px;
+    display: none;
 }
 
-
-/* FORM */
-
-.auth-form .form-group {
-    margin-bottom: 21px;
-}
-
-.auth-form .form-label {
-    font-size: 13px;
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
 }
 
 .auth-form .form-control {
-    height: 48px;
-    padding: 0 15px;
+    min-height: 42px;
 }
 
-.auth-form .btn {
-    height: 49px;
+.auth-form .btn-primary {
     width: 100%;
-    margin-top: 8px;
+    min-height: 42px;
+    margin-top: 6px;
     font-size: 14px;
 }
 
 .auth-footer {
-    text-align: center;
-    margin-top: 26px;
-    color: var(--text-secondary);
-    font-size: 13px;
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 13.5px;
 }
 
 .auth-footer a {
-    color: var(--primary);
     font-weight: 600;
+    text-decoration: none;
 }
 
 .auth-footer a:hover {
     text-decoration: underline;
 }
 
-.auth-error {
-    color: var(--danger);
-    font-size: 12px;
-    margin-top: 5px;
-}
-
-.auth-form .form-control:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
-}
-
-
-/* RESPONSIVE */
+/* ---------------------------------------------------------- small screens: form first */
 
 @media (max-width: 900px) {
     .auth-page {
-        grid-template-columns: 0.8fr 1.2fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .auth-brand {
-        padding: 35px;
+        grid-template-rows: auto;
+        gap: 6px;
+        padding: 18px 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
     }
 
-    .brand-content h1 {
-        font-size: 34px;
-    }
-}
-
-@media (max-width: 650px) {
-    .auth-page {
-        grid-template-columns: 1fr;
-    }
-
-    .auth-brand {
-        min-height: 190px;
-        padding: 25px;
-    }
-
-    .brand-content {
-        margin-top: 35px;
-    }
-
-    .brand-content h1 {
-        font-size: 27px;
-        margin-bottom: 10px;
-    }
-
-    .brand-content p,
-    .brand-footer {
+    .brand-scene {
         display: none;
     }
 
-    .auth-main {
-        padding: 35px 22px;
-        align-items: flex-start;
+    .brand-line {
+        font-size: 16px;
     }
+
+    .auth-main {
+        align-items: flex-start;
+        padding: 36px 16px 48px;
+    }
+
+    .auth-theme {
+        top: 14px;
+        right: 16px;
+    }
+}
+
+@media (max-width: 1100px) and (min-width: 901px) {
+    .scene-answer {
+        right: 0;
+    }
+
 }

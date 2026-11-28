@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | Search</title>
+    <title>Search | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
@@ -29,11 +27,9 @@
 
             <div class="documents-heading">
                 <div>
-                    <span class="page-eyebrow">WORKSPACE</span>
                     <h1>Search</h1>
-                    <p>Finds passages by meaning, not only exact words: "time off" also finds "vacation".</p>
+                    <p>Finds passages by meaning, not only by exact words: "time off" also finds "vacation".</p>
                 </div>
-                <div class="documents-heading-icon">⌕</div>
             </div>
 
             <form th:action="@{/search}" method="get" class="search-page-form" role="search">
@@ -58,29 +54,28 @@
 
                 <article class="search-result" th:each="result : ${results}">
                     <header class="search-result-header">
-                        <span class="document-icon">📄</span>
-                        <strong th:text="${result.documentTitle}">Document title</strong>
-                        <span class="muted" th:text="'· passage ' + ${result.chunkIndex + 1}">· passage 1</span>
+                        <span class="document-icon" aria-hidden="true"></span>
+                        <a class="result-title" th:href="@{/documents/{id}(id=${result.documentId})}"
+                           th:text="${result.documentTitle}">Document title</a>
+                        <span class="muted" th:text="'Passage ' + ${result.chunkIndex + 1}">Passage 1</span>
                         <span class="score-badge push-right"
                               th:text="${#numbers.formatDecimal(result.score * 100, 1, 0)} + '% match'">80% match</span>
                     </header>
-                    <p class="search-result-content" th:text="${result.content}">Passage text</p>
+                    <p class="search-result-content excerpt" th:text="${result.content}">Passage text</p>
                     <a class="link-button"
-                       th:href="@{/assistant(ask=${query})}">Ask the assistant about this →</a>
+                       th:href="@{/assistant(ask=${query})}">Ask the assistant</a>
                 </article>
 
                 <div class="empty-state-content padded" th:if="${#lists.isEmpty(results)}">
-                    <span class="empty-icon">⌕</span>
                     <h3>No relevant passages found</h3>
                     <p>
-                        Try other words, or check that the document is uploaded and its status is INDEXED
-                        in <a th:href="@{/documents}">My Documents</a>.
+                        Try other words, or check in <a th:href="@{/documents}">Documents</a>
+                        that the file you expect is there and its status says Indexed.
                     </p>
                 </div>
             </div>
 
             <div class="empty-state-content padded" th:if="${results == null and errorMessage == null}">
-                <span class="empty-icon">⌕</span>
                 <h3>Search your documents</h3>
                 <p>Type a question or a few words. Tip: press Ctrl+K (⌘K on Mac) on any page to jump to the search box.</p>
             </div>
@@ -90,6 +85,8 @@
     </main>
 
 </div>
+
+<script th:src="@{/js/pages.js}"></script>
 
 </body>
 </html>

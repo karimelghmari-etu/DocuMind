@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | History</title>
+    <title>History | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
@@ -29,11 +27,9 @@
 
             <div class="documents-heading">
                 <div>
-                    <span class="page-eyebrow">WORKSPACE</span>
                     <h1>History</h1>
                     <p>All your conversations with the AI assistant, newest first.</p>
                 </div>
-                <div class="documents-heading-icon">◷</div>
             </div>
 
             <div class="documents-table-container">
@@ -60,9 +56,9 @@
                     <table class="documents-table">
                         <thead>
                         <tr>
-                            <th>TITLE</th>
-                            <th>STARTED</th>
-                            <th class="align-right">ACTIONS</th>
+                            <th>Title</th>
+                            <th>Started</th>
+                            <th class="align-right"><span class="visually-hidden">Actions</span></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -72,7 +68,6 @@
                             <td>
                                 <a class="document-name plain-link"
                                    th:href="@{/assistant(conversation=${conversation.id})}">
-                                    <span class="document-icon">💬</span>
                                     <span class="document-title" th:text="${conversation.title}">Conversation title</span>
                                 </a>
                             </td>
@@ -104,7 +99,6 @@
                         <tr th:if="${#lists.isEmpty(conversations)}">
                             <td colspan="3" class="empty-documents">
                                 <div class="empty-state-content">
-                                    <span class="empty-icon">💬</span>
                                     <h3>No conversations yet</h3>
                                     <p><a th:href="@{/assistant}">Ask the AI Assistant</a> a question about your documents.</p>
                                 </div>

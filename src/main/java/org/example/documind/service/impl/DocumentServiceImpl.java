@@ -9,6 +9,10 @@ import org.example.documind.domain.entity.User;
 import org.example.documind.domain.enums.DocumentStatus;
 import org.example.documind.domain.enums.ProcessingStatus;
 import org.example.documind.dto.document.DocumentDTO;
+import org.example.documind.dto.document.DocumentDetailDTO;
+import org.example.documind.dto.document.StoredFile;
+import org.example.documind.domain.entity.DocumentChunk;
+import java.util.Comparator;
 import org.example.documind.dto.document.DocumentStatusDTO;
 import org.example.documind.dto.document.DocumentUpdateDTO;
 import org.example.documind.dto.document.DocumentUploadDTO;
@@ -46,7 +50,9 @@ public class DocumentServiceImpl implements DocumentService {
                 document.getId(),
                 document.getTitle(),
                 document.getStatus(),
-                document.getUploadedAt()
+                document.getUploadedAt(),
+                document.getContentType(),
+                document.getFileSize()
         );
     }
 
@@ -171,6 +177,44 @@ public class DocumentServiceImpl implements DocumentService {
         job.setErrorMessage(null);
         document.setStatus(DocumentStatus.PENDING);
     }
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentDetailDTO getDocumentDetail(Long documentId, Long ownerId) {
+        Document document = documentRepository.findByIdAndOwnerId(documentId, ownerId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+
+        List<DocumentDetailDTO.CollectionRef> collections = collectionRepository.findByDocumentsId(documentId).stream()
+                .filter(c -> c.getOwner().getId().equals(ownerId))
+                .map(c -> new DocumentDetailDTO.CollectionRef(c.getId(), c.getName()))
+                .toList();
+
+        List<DocumentDetailDTO.Passage> passages = documentChunkRepository.findByDocumentId(documentId).stream()
+                .sorted(Comparator.comparingInt(DocumentChunk::getChunkIndex))
+                .map(c -> new DocumentDetailDTO.Passage(c.getChunkIndex(), c.getContent()))
+                .toList();
+
+        return new DocumentDetailDTO(
+                document.getId(),
+                document.getTitle(),
+                document.getFilename(),
+                document.getContentType(),
+                document.getFileSize() == null ? 0 : document.getFileSize(),
+                document.getStatus(),
+                document.getUploadedAt(),
+                collections,
+                passages);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StoredFile getDocumentFile(Long documentId, Long ownerId) {
+        Document document = documentRepository.findByIdAndOwnerId(documentId, ownerId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+        return new StoredFile(
+                fileStorageService.load(document.getFilePath()),
+                document.getFilename(),
+                document.getContentType(),
+                document.getFileSize() == null ? 0 : document.getFileSize());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<DocumentDTO> getRecentDocuments(Long ownerId) {

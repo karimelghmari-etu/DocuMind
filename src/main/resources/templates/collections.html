@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | Collections</title>
+    <title>Collections | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
@@ -30,11 +28,9 @@
             <!-- Page heading -->
             <div class="documents-heading">
                 <div>
-                    <span class="page-eyebrow">WORKSPACE</span>
                     <h1>Collections</h1>
                     <p>Group related documents together, for example one collection per course or project.</p>
                 </div>
-                <div class="documents-heading-icon">▧</div>
             </div>
 
             <!-- Create a collection -->
@@ -44,7 +40,6 @@
                         <h2>New collection</h2>
                         <p>You can add documents to it on the next page.</p>
                     </div>
-                    <div class="upload-section-icon">+</div>
                 </div>
 
                 <form th:action="@{/collections}" method="post" class="upload-form">
@@ -70,10 +65,7 @@
 
                     <div class="upload-form-footer">
                         <span class="upload-hint"></span>
-                        <button type="submit" class="upload-btn">
-                            <span>+</span>
-                            Create collection
-                        </button>
+                        <button type="submit" class="upload-btn">Create collection</button>
                     </div>
                 </form>
             </section>
@@ -95,7 +87,12 @@
                     <article class="collection-card" th:each="collection : ${collections}">
                         <a class="collection-card-link"
                            th:href="@{/collections/{id}(id=${collection.id})}">
-                            <span class="collection-card-icon" aria-hidden="true">▧</span>
+                            <!-- Up to three pages: filled for each document, dashed when there are fewer. -->
+                            <div class="collection-stack" aria-hidden="true">
+                                <span th:classappend="${collection.documentCount < 3} ? ' empty' : ''"></span>
+                                <span th:classappend="${collection.documentCount < 2} ? ' empty' : ''"></span>
+                                <span th:classappend="${collection.documentCount < 1} ? ' empty' : ''"></span>
+                            </div>
                             <h3 th:text="${collection.name}">Collection name</h3>
                             <p class="collection-card-description"
                                th:text="${collection.description != null ? collection.description : 'No description'}"
@@ -108,7 +105,6 @@
                             <span th:text="${collection.documentCount} + (${collection.documentCount} == 1 ? ' document' : ' documents')">
                                 0 documents
                             </span>
-                            <span class="dot" aria-hidden="true">·</span>
                             <span th:text="${collection.createdAt != null ? #temporals.format(collection.createdAt, 'dd/MM/yyyy') : ''}">
                                 01/01/2026
                             </span>
@@ -124,7 +120,6 @@
                 </div>
 
                 <div class="empty-state-content padded" th:if="${#lists.isEmpty(collections)}">
-                    <span class="empty-icon">▧</span>
                     <h3>No collections yet</h3>
                     <p>Create your first collection above.</p>
                 </div>

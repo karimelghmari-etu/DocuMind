@@ -144,6 +144,7 @@ public class CollectionsWebController {
         addUser(model, userDetails);
         model.addAttribute("currentPage", collection.getName());
         model.addAttribute("collection", collection);
+        model.addAttribute("activeCollectionId", collection.getId());   // highlights it in the sidebar
         model.addAttribute("documents", all.stream().filter(d -> inCollection.contains(d.getId())).toList());
         model.addAttribute("otherDocuments", all.stream().filter(d -> !inCollection.contains(d.getId())).toList());
         model.addAttribute("maxName", MAX_NAME);

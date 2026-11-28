@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     setUpHistoryFilter();
+    highlightSearchTerms();
 });
 
 /* History page: hide conversations whose title does not contain the filter text. */
@@ -31,5 +32,42 @@ function setUpHistoryFilter() {
         if (noMatch) {
             noMatch.hidden = visible > 0;
         }
+    });
+}
+
+/*
+ * Search page: mark the words of the query inside each excerpt.
+ * Search works by meaning, so a passage can match without any of these words;
+ * the marks only help the eye when the words are there.
+ * Built with text nodes, never innerHTML, so document text can't inject HTML.
+ */
+function highlightSearchTerms() {
+    const excerpts = document.querySelectorAll(".search-result-content");
+    const query = document.querySelector(".search-page-form input[name='q']")?.value || "";
+
+    const terms = [...new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((t) => t.length >= 3))];
+    if (excerpts.length === 0 || terms.length === 0) {
+        return;
+    }
+
+    const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const pattern = new RegExp(`(${escaped.join("|")})`, "giu");
+
+    excerpts.forEach((excerpt) => {
+        const text = excerpt.textContent;
+        const parts = text.split(pattern);
+        if (parts.length === 1) return;
+
+        excerpt.textContent = "";
+        parts.forEach((part, i) => {
+            if (i % 2 === 1) {
+                const mark = document.createElement("mark");
+                mark.className = "hit";
+                mark.textContent = part;
+                excerpt.append(mark);
+            } else if (part) {
+                excerpt.append(document.createTextNode(part));
+            }
+        });
     });
 }

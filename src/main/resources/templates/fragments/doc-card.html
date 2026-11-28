@@ -1,0 +1,39 @@
+<!-- A document as a card: a drawn first page with its file type, the title, date and status.
+     The whole top part opens the document. "actions" adds Delete / Try again (Documents page only). -->
+<article class="doc-card" th:fragment="card(document, actions)">
+
+    <a class="doc-card-open" th:href="@{/documents/{id}(id=${document.id})}">
+        <div class="doc-thumb" th:attr="data-type=${document.typeLabel}" aria-hidden="true">
+            <span class="doc-type" th:text="${document.typeLabel}">PDF</span>
+        </div>
+        <h3 th:text="${document.title}">Document title</h3>
+    </a>
+
+    <div class="doc-card-meta">
+        <span class="status-badge"
+              th:if="${document.status != null}"
+              th:classappend="'status-' + ${#strings.toLowerCase(document.status.name())}"
+              th:attr="data-document-id=${actions} ? ${document.id} : null,data-status=${actions} ? ${document.status} : null"
+              th:text="${#strings.capitalize(#strings.toLowerCase(document.status.name()))}">Indexed</span>
+        <span class="doc-card-date"
+              th:if="${document.uploadedAt != null}"
+              th:text="${#temporals.format(document.uploadedAt, 'd MMM yyyy')}">28 Nov 2026</span>
+    </div>
+
+    <div class="doc-card-actions" th:if="${actions}">
+        <form th:if="${document.status != null and document.status.name() == 'FAILED'}"
+              th:action="@{/documents/{id}/reprocess(id=${document.id})}"
+              method="post"
+              class="inline-form">
+            <button type="submit" class="link-button">Try again</button>
+        </form>
+        <a class="link-button" th:href="@{/documents/{id}/file(id=${document.id},download=true)}">Download</a>
+        <form th:action="@{/documents/{id}/delete(id=${document.id})}"
+              method="post"
+              class="inline-form push-right"
+              onsubmit="return confirm('Delete this document? This cannot be undone.');">
+            <button type="submit" class="link-button danger">Delete</button>
+        </form>
+    </div>
+
+</article>

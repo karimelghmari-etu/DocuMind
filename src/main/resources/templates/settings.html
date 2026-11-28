@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DocuMind | Settings</title>
+    <title>Settings | DocuMind</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <link rel="stylesheet" th:href="@{/css/documents.css}">
-    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <th:block th:replace="~{fragments/head :: assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
@@ -29,11 +27,9 @@
 
             <div class="documents-heading">
                 <div>
-                    <span class="page-eyebrow">PREFERENCES</span>
                     <h1>Settings</h1>
                     <p>Your account information and password.</p>
                 </div>
-                <div class="documents-heading-icon">⚙</div>
             </div>
 
             <div class="two-columns">
@@ -45,7 +41,6 @@
                             <h2>Account</h2>
                             <p>These details were set when you registered.</p>
                         </div>
-                        <div class="upload-section-icon" th:text="${avatarInitial}">U</div>
                     </div>
 
                     <dl class="account-details">
@@ -67,7 +62,6 @@
                             <h2>Change password</h2>
                             <p>At least 8 characters. You stay logged in on this device.</p>
                         </div>
-                        <div class="upload-section-icon">🔒</div>
                     </div>
 
                     <!-- th:object is used only for the error messages: password values are never written back. -->
