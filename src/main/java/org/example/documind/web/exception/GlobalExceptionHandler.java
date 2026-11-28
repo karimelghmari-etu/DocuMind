@@ -2,6 +2,7 @@
 package org.example.documind.web.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +12,9 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @Value("${spring.servlet.multipart.max-file-size:1MB}")
+    private String maxFileSize;
 
     @ExceptionHandler(DocumentNotFoundException.class)
     public ResponseEntity<String> handleDocumentNotFoundException(
@@ -66,12 +70,17 @@ public class GlobalExceptionHandler {
                 .body(e.getMessage());
     }
 
+    /**
+     * API uploads that are too large. Browser uploads never reach this handler:
+     * the CSRF filter reads the form first, so Tomcat rejects them with 413 and
+     * Spring Boot shows templates/error/413.html instead.
+     */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<String> handleMaxUploadSizeExceededException(
             MaxUploadSizeExceededException e){
         return ResponseEntity
                 .status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body("File exceeds the maximum size of 20MB");
+                .body("File exceeds the maximum size of " + maxFileSize);
     }
 
     @ExceptionHandler(FileStorageException.class)

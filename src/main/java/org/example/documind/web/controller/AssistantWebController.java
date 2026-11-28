@@ -34,6 +34,7 @@ public class AssistantWebController {
                 username.substring(0, 1).toUpperCase()
         );
         model.addAttribute("activePage", "assistant");
+        model.addAttribute("currentPage", "AI Assistant");
 
         return "assistant";
     }
@@ -52,7 +53,7 @@ public class AssistantWebController {
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public ConversationDTO createConversation(
-            @RequestBody(required = false) ConversationRequestDTO request,
+            @Valid @RequestBody(required = false) ConversationRequestDTO request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         return conversationService.createConversation(

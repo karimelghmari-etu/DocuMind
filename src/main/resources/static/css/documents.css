@@ -24,6 +24,20 @@
     font-size: 13px;
 }
 
+.error-message {
+    padding: 13px 16px;
+    margin-bottom: 22px;
+    color: #b42318;
+    background: #fdecea;
+    border: 1px solid #f6cfca;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.error-message[hidden] {
+    display: none;
+}
+
 /* =========================================
    PAGE HEADING
 ========================================= */
@@ -497,7 +511,8 @@
     color: #2864b4;
 }
 
-.status-completed {
+.status-completed,
+.status-indexed {
     background: #e2f7eb;
     color: #25804b;
 }

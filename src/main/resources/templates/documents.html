@@ -33,6 +33,16 @@
                  th:text="${successMessage}">
             </div>
 
+            <!-- Error message (bad file type, file too large, ...) -->
+            <div th:if="${errorMessage}"
+                 class="error-message"
+                 role="alert"
+                 th:text="${errorMessage}">
+            </div>
+
+            <!-- Filled by documents.js when the browser rejects a file before sending it -->
+            <div id="clientError" class="error-message" role="alert" hidden></div>
+
             <!-- Page heading -->
             <div class="documents-heading">
                 <div>
@@ -61,7 +71,9 @@
                 <form th:action="@{/documents/upload}"
                       method="post"
                       enctype="multipart/form-data"
-                      class="upload-form">
+                      class="upload-form"
+                      id="uploadForm"
+                      th:attr="data-max-size=${maxFileSize}">
 
                     <!-- CSRF token -->
                     <input type="hidden"
@@ -111,7 +123,6 @@
                                id="documentFile"
                                name="file"
                                accept=".pdf,.txt,.docx"
-                               required
                                hidden>
 
                         <div id="selectedFile" class="selected-file">
@@ -126,8 +137,9 @@
                     <!-- Upload button -->
                     <div class="upload-form-footer">
 
-                        <span class="upload-hint">
-                            Maximum file size: 50 MB
+                        <span class="upload-hint"
+                              th:text="'Maximum file size: ' + ${maxFileSize}">
+                            Maximum file size: 50MB
                         </span>
 
                         <button type="submit" class="upload-btn">
@@ -213,6 +225,7 @@
                             <td>
                                 <span class="status-badge"
                                       th:classappend="${document.status != null ? 'status-' + #strings.toLowerCase(document.status.name()) : ''}"
+                                      th:attr="data-document-id=${document.id},data-status=${document.status}"
                                       th:text="${document.status}">
                                     PENDING
                                 </span>
