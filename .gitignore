@@ -37,3 +37,6 @@ data/
 
 ### Uploaded files ###
 uploads/
+
+### env file ###
+.env

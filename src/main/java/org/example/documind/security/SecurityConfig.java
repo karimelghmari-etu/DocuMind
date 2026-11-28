@@ -104,10 +104,6 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**")
-                )
-
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())
                 )
@@ -126,8 +122,7 @@ public class SecurityConfig {
                                 "/register",
                                 "/css/**",
                                 "/js/**",
-                                "/images/**",
-                                "/h2-console/**"
+                                "/images/**"
                         ).permitAll()
 
                         .anyRequest().authenticated()

@@ -1,0 +1,10 @@
+CREATE INDEX idx_documents_owner_id ON documents (owner_id);
+CREATE INDEX idx_document_chunks_document_id ON document_chunks (document_id);
+CREATE INDEX idx_processing_jobs_document_id ON processing_jobs (document_id);
+CREATE INDEX idx_collections_owner_id ON collections (owner_id);
+CREATE INDEX idx_collection_documents_document_id ON collection_documents (document_id);
+CREATE INDEX idx_conversations_user_id ON conversations (user_id);
+CREATE INDEX idx_messages_conversation_id ON messages (conversation_id);
+CREATE INDEX idx_source_references_message_id ON source_references (message_id);
+CREATE INDEX idx_source_references_chunk_id ON source_references (chunk_id);
+CREATE INDEX idx_user_roles_role_id ON user_roles (role_id);
