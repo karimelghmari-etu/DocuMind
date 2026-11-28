@@ -33,6 +33,11 @@
                     <h1>Welcome to DocuMind 👋</h1>
                     <p>Here's an overview of your workspace.</p>
                 </div>
+
+                <a th:href="@{/documents}" class="dashboard-upload-btn">
+                    <span>+</span>
+                    Upload document
+                </a>
             </div>
 
             <!-- STATISTICS -->
@@ -88,7 +93,7 @@
 
                     <div class="panel-heading">
                         <h2>Recent documents</h2>
-                        <a href="#">View all</a>
+                        <a th:href="@{/documents}">View all</a>
                     </div>
 
                     <!-- DOCUMENTS AVAILABLE -->
@@ -166,6 +171,9 @@
                             Then you can ask questions and get
                             answers based on your own content.
                         </p>
+                        <a th:href="@{/assistant}" class="assistant-link">
+                            Open AI Assistant →
+                        </a>
 
                     </div>
 

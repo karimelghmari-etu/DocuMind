@@ -41,6 +41,7 @@ public class DocumentsWebController {
                 "documents",
                 documentService.getDocumentsByOwnerId(userId)
         );
+        model.addAttribute("currentPage", "My Documents");
 
         return "documents";
     }

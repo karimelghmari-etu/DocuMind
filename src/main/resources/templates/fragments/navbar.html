@@ -5,10 +5,7 @@
         <div class="breadcrumb">
             <span>Workspace</span>
             <span class="breadcrumb-separator">/</span>
-
-            <strong th:text="${activePage == 'assistant' ? 'AI Assistant' : 'Dashboard'}">
-                Dashboard
-            </strong>
+            <strong th:text="${currentPage}">Dashboard</strong>
         </div>
     </div>
 

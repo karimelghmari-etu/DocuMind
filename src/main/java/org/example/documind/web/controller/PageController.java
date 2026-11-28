@@ -96,6 +96,7 @@ public class PageController {
                 "recentDocuments",
                 dashboardService.getRecentDocuments(userId)
         );
+        model.addAttribute("currentPage", "Dashboard");
 
 
         return "dashboard";
