@@ -8,7 +8,7 @@
     "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "baseUrl", "value": "http://localhost:8081" },
     { "key": "username", "value": "testuser" },
     { "key": "password", "value": "password123" },
     { "key": "token", "value": "" },
